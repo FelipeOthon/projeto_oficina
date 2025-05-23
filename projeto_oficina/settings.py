@@ -29,6 +29,15 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Configurações do CORS para Desenvolvimento
+CORS_ORIGIN_ALLOW_ALL = True
+# Se você quiser ser mais específico no futuro, em vez de CORS_ORIGIN_ALLOW_ALL, use:
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5500",  # Exemplo se usar Live Server do VS Code na porta 5500
+#     "http://127.0.0.1:5500",
+#     "null",  # Para permitir requisições de 'file://' (abrir HTML diretamente)
+# ]
+# CORS_ALLOW_CREDENTIALS = True # Se você precisar enviar cookies/autenticação com as requisições CORS
 
 # Application definition
 
@@ -40,12 +49,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'gestao_oficina.apps.GestaoOficinaConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
