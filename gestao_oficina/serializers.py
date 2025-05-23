@@ -55,7 +55,7 @@ class AgendamentoSerializer(serializers.ModelSerializer):
 # --- NOVOS SERIALIZERS PARA ORDEM DE SERVIÇO E SEUS ITENS ---
 
 class ItemOsPecaSerializer(serializers.ModelSerializer):
-    valor_total_item = serializers.ReadOnlyField()  # Já que é uma @property no model
+    valor_total_item = serializers.ReadOnlyField()
 
     class Meta:
         model = ItemOsPeca

@@ -7,6 +7,7 @@
     <list default="true" id="6ddb8d25-419f-4653-b538-52ae18089593" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gestao_oficina/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/gestao_oficina/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -93,7 +94,7 @@
       <option name="presentableId" value="Default" />
       <updated>1747928258432</updated>
       <workItem from="1747928259712" duration="7601000" />
-      <workItem from="1748003103102" duration="6312000" />
+      <workItem from="1748003103102" duration="7671000" />
     </task>
     <servers />
   </component>
