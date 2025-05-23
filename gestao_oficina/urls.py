@@ -5,8 +5,10 @@ from .views import (
     ClienteRetrieveUpdateDestroyAPIView,
     VeiculoListCreateAPIView,
     VeiculoRetrieveUpdateDestroyAPIView,
-    AgendamentoListCreateAPIView,     # ADICIONADA VIEW DRF PARA AGENDAMENTO
-    AgendamentoRetrieveUpdateDestroyAPIView  # ADICIONADA VIEW DRF PARA AGENDAMENTO
+    AgendamentoListCreateAPIView,
+    AgendamentoRetrieveUpdateDestroyAPIView,
+    OrdemDeServicoListCreateAPIView,
+    OrdemDeServicoRetrieveUpdateDestroyAPIView
 )
 
 app_name = 'gestao_oficina'
@@ -20,7 +22,13 @@ urlpatterns = [
     path('veiculos/', VeiculoListCreateAPIView.as_view(), name='veiculo-list-create'),
     path('veiculos/<int:pk>/', VeiculoRetrieveUpdateDestroyAPIView.as_view(), name='veiculo-detail-update-delete'),
 
-    # URLs de Agendamento (NOVAS - COM DRF CLASS-BASED VIEWS)
+    # URLs de Agendamento (COM DRF)
     path('agendamentos/', AgendamentoListCreateAPIView.as_view(), name='agendamento-list-create'),
-    path('agendamentos/<int:pk>/', AgendamentoRetrieveUpdateDestroyAPIView.as_view(), name='agendamento-detail-update-delete'),
+    path('agendamentos/<int:pk>/', AgendamentoRetrieveUpdateDestroyAPIView.as_view(),
+         name='agendamento-detail-update-delete'),
+
+    # URLs de Ordem de Serviço (COM DRF)
+    path('ordens-servico/', OrdemDeServicoListCreateAPIView.as_view(), name='ordemdeservico-list-create'),
+    path('ordens-servico/<int:pk>/', OrdemDeServicoRetrieveUpdateDestroyAPIView.as_view(),
+         name='ordemdeservico-detail-update-delete'),
 ]
