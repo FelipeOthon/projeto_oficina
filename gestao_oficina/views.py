@@ -1,122 +1,36 @@
+# gestao_oficina/views.py
+
+# Imports para as views antigas de Veiculo (ainda não refatoradas)
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseNotAllowed, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-from .models import Cliente, Veiculo  # Adicionado Veiculo aqui
+
+# Imports para DRF e os models
+from .models import Cliente, Veiculo  # Certifique-se de que Veiculo está aqui
+from .serializers import ClienteSerializer  # Importe o novo serializer
+from rest_framework import generics
 
 
-# VIEWS PARA CLIENTE (EXISTENTES)
-@csrf_exempt
-def cliente_list_create_api(request):
-    if request.method == 'GET':
-        clientes = Cliente.objects.all()
-        data = {"clientes": list(clientes.values('id', 'nome_completo', 'telefone_principal', 'email'))}
-        return JsonResponse(data)
+# from rest_framework import status # Útil para retornar códigos de status HTTP mais explicitamente
+# from rest_framework.response import Response # Alternativa ao JsonResponse, mais poderosa no DRF
 
-    elif request.method == 'POST':
-        try:
-            dados = json.loads(request.body)
-            # Validação básica de campos obrigatórios
-            if not dados.get('nome_completo') or not dados.get('telefone_principal'):
-                return JsonResponse({'erro': 'Nome completo e telefone principal são obrigatórios.'}, status=400)
-
-            novo_cliente = Cliente.objects.create(
-                nome_completo=dados.get('nome_completo'),
-                telefone_principal=dados.get('telefone_principal'),
-                telefone_secundario=dados.get('telefone_secundario'),
-                email=dados.get('email'),
-                cpf_cnpj=dados.get('cpf_cnpj'),
-                endereco_rua=dados.get('endereco_rua'),
-                endereco_numero=dados.get('endereco_numero'),
-                endereco_complemento=dados.get('endereco_complemento'),
-                endereco_bairro=dados.get('endereco_bairro'),
-                endereco_cidade=dados.get('endereco_cidade'),
-                endereco_estado=dados.get('endereco_estado'),
-                endereco_cep=dados.get('endereco_cep')
-            )
-            return JsonResponse({
-                'id': novo_cliente.id,
-                'nome_completo': novo_cliente.nome_completo,
-                'email': novo_cliente.email
-            }, status=201)
-        except Exception as e:
-            # Para erros de integridade (como email/cpf_cnpj duplicado), o Django levanta IntegrityError
-            # Você pode querer tratar isso de forma mais específica.
-            return JsonResponse({'erro': str(e)}, status=400)
-
-    return HttpResponseNotAllowed(['GET', 'POST'])
+# --- VIEWS DE CLIENTE REATORADAS COM DJANGO REST FRAMEWORK ---
+class ClienteListCreateAPIView(generics.ListCreateAPIView):
+    queryset = Cliente.objects.all().order_by('nome_completo')  # Adicionado ordenação
+    serializer_class = ClienteSerializer
+    # Para adicionar permissões depois:
+    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
-@csrf_exempt
-def cliente_detail_update_delete_api(request, pk):
-    try:
-        cliente = Cliente.objects.get(pk=pk)
-    except Cliente.DoesNotExist:
-        return JsonResponse({'erro': 'Cliente não encontrado'}, status=404)
-
-    if request.method == 'GET':
-        data = {
-            'id': cliente.id,
-            'nome_completo': cliente.nome_completo,
-            'telefone_principal': cliente.telefone_principal,
-            'telefone_secundario': cliente.telefone_secundario,
-            'email': cliente.email,
-            'cpf_cnpj': cliente.cpf_cnpj,
-            'endereco_rua': cliente.endereco_rua,
-            'endereco_numero': cliente.endereco_numero,
-            'endereco_complemento': cliente.endereco_complemento,
-            'endereco_bairro': cliente.endereco_bairro,
-            'endereco_cidade': cliente.endereco_cidade,
-            'endereco_estado': cliente.endereco_estado,
-            'endereco_cep': cliente.endereco_cep,
-            'data_cadastro': cliente.data_cadastro.strftime('%d/%m/%Y %H:%M:%S') if cliente.data_cadastro else None
-        }
-        return JsonResponse(data)
-
-    elif request.method == 'PUT':
-        try:
-            dados = json.loads(request.body)
-            cliente.nome_completo = dados.get('nome_completo', cliente.nome_completo)
-            cliente.telefone_principal = dados.get('telefone_principal', cliente.telefone_principal)
-            cliente.telefone_secundario = dados.get('telefone_secundario', cliente.telefone_secundario)
-            cliente.email = dados.get('email', cliente.email)
-            cliente.cpf_cnpj = dados.get('cpf_cnpj', cliente.cpf_cnpj)
-            cliente.endereco_rua = dados.get('endereco_rua', cliente.endereco_rua)
-            cliente.endereco_numero = dados.get('endereco_numero', cliente.endereco_numero)
-            cliente.endereco_complemento = dados.get('endereco_complemento', cliente.endereco_complemento)
-            cliente.endereco_bairro = dados.get('endereco_bairro', cliente.endereco_bairro)
-            cliente.endereco_cidade = dados.get('endereco_cidade', cliente.endereco_cidade)
-            cliente.endereco_estado = dados.get('endereco_estado', cliente.endereco_estado)
-            cliente.endereco_cep = dados.get('endereco_cep', cliente.endereco_cep)
-
-            # Validação básica de campos obrigatórios na atualização
-            if not cliente.nome_completo or not cliente.telefone_principal:
-                return JsonResponse({'erro': 'Nome completo e telefone principal são obrigatórios.'}, status=400)
-
-            cliente.save()
-            # Retornar todos os dados atualizados para confirmação
-            data_atualizada = {
-                'id': cliente.id, 'nome_completo': cliente.nome_completo,
-                'telefone_principal': cliente.telefone_principal,
-                'telefone_secundario': cliente.telefone_secundario, 'email': cliente.email,
-                'cpf_cnpj': cliente.cpf_cnpj,
-                'endereco_rua': cliente.endereco_rua, 'endereco_numero': cliente.endereco_numero,
-                'endereco_complemento': cliente.endereco_complemento, 'endereco_bairro': cliente.endereco_bairro,
-                'endereco_cidade': cliente.endereco_cidade, 'endereco_estado': cliente.endereco_estado,
-                'endereco_cep': cliente.endereco_cep,
-                'data_cadastro': cliente.data_cadastro.strftime('%d/%m/%Y %H:%M:%S') if cliente.data_cadastro else None
-            }
-            return JsonResponse(data_atualizada)
-        except Exception as e:
-            return JsonResponse({'erro': str(e)}, status=400)
-
-    elif request.method == 'DELETE':
-        cliente.delete()
-        return HttpResponse(status=204)
-
-    return HttpResponseNotAllowed(['GET', 'PUT', 'DELETE'])
+class ClienteRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Cliente.objects.all()
+    serializer_class = ClienteSerializer
+    lookup_field = 'pk'  # 'pk' já é o padrão, mas é bom saber que pode ser definido
+    # Para adicionar permissões depois:
+    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
-# VIEWS PARA VEICULO (NOVAS)
+# --- VIEWS PARA VEICULO (AINDA NO FORMATO ANTIGO - NÃO REATORADO) ---
 @csrf_exempt
 def veiculo_list_create_api(request):
     if request.method == 'GET':
@@ -204,7 +118,6 @@ def veiculo_detail_update_delete_api(request, pk):
         try:
             dados = json.loads(request.body)
 
-            # Validar campos obrigatórios na atualização, se necessário
             if dados.get('placa') == "" or dados.get('marca') == "" or dados.get('modelo') == "":
                 return JsonResponse({'erro': 'Placa, marca e modelo não podem ser vazios na atualização.'}, status=400)
 
