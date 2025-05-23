@@ -1,6 +1,6 @@
 # gestao_oficina/serializers.py
 from rest_framework import serializers
-from .models import Cliente, Veiculo, Usuario # Adicione outros models aqui conforme necessário
+from .models import Cliente, Veiculo, Usuario, Agendamento # Adicionado Agendamento aqui
 
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,29 +8,35 @@ class ClienteSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ('data_cadastro',)
 
-# --- SERIALIZER PARA VEICULO (AGORA DEFINIDO) ---
 class VeiculoSerializer(serializers.ModelSerializer):
-    # Para exibir o nome do cliente em vez de apenas o ID na resposta (somente leitura)
     cliente_nome = serializers.CharField(source='cliente.nome_completo', read_only=True)
-    # O campo 'cliente' abaixo (que é o ForeignKey no model) será usado para
-    # receber o ID do cliente ao criar ou atualizar um veículo.
-    # O DRF o representará como um ID na entrada e pode mostrar mais detalhes na saída,
-    # especialmente se usarmos 'depth' ou serializers aninhados, mas 'cliente_nome' já ajuda.
 
     class Meta:
         model = Veiculo
         fields = [
-            'id',
-            'cliente', # Este campo aceitará o ID do cliente para associação
-            'placa',
-            'marca',
-            'modelo',
-            'ano_fabricacao',
-            'ano_modelo',
-            'cor',
-            'chassi',
-            'observacoes',
-            'data_cadastro',
-            'cliente_nome' # Campo extra para visualização
+            'id', 'cliente', 'placa', 'marca', 'modelo',
+            'ano_fabricacao', 'ano_modelo', 'cor', 'chassi',
+            'observacoes', 'data_cadastro', 'cliente_nome'
         ]
         read_only_fields = ('data_cadastro', 'cliente_nome')
+
+# --- NOVO SERIALIZER PARA AGENDAMENTO ---
+class AgendamentoSerializer(serializers.ModelSerializer):
+    cliente_nome = serializers.CharField(source='cliente.nome_completo', read_only=True)
+    veiculo_info = serializers.SerializerMethodField(read_only=True)
+    mecanico_nome = serializers.CharField(source='mecanico_atribuido.username', read_only=True, allow_null=True)
+
+    class Meta:
+        model = Agendamento
+        fields = [
+            'id', 'cliente', 'veiculo', 'mecanico_atribuido',
+            'data_agendamento', 'hora_agendamento', 'servico_solicitado',
+            'status_agendamento', 'observacoes', 'data_criacao_agendamento',
+            'cliente_nome', 'veiculo_info', 'mecanico_nome'
+        ]
+        read_only_fields = ('data_criacao_agendamento', 'cliente_nome', 'veiculo_info', 'mecanico_nome')
+
+    def get_veiculo_info(self, obj):
+        if obj.veiculo:
+            return f"{obj.veiculo.marca} {obj.veiculo.modelo} ({obj.veiculo.placa})"
+        return None
