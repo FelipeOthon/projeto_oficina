@@ -1,21 +1,12 @@
+# gestao_oficina/models.py
+
 from django.db import models
-from django.contrib.auth.models import AbstractUser # Vamos usar isso para estender o usuário do Django
+from django.contrib.auth.models import AbstractUser
 from django.conf import settings
-
-# 1. Model para Usuarios
-# Para simplificar e aproveitar o sistema de autenticação do Django,
-# vamos estender o modelo de usuário padrão do Django.
-# Se você quiser campos adicionais específicos para o usuário do seu sistema (além de username, password, email, etc.),
-# podemos criar um perfil separado ou estender AbstractUser de forma mais completa.
-# Por agora, vamos focar nos campos que você listou que diferem ou complementam.
-
-# Se você precisar de 'tipo_usuario' (admin, mecanico) e 'ativo'
-# podemos adicionar isso a um modelo de Usuário customizado.
-# Uma forma comum é criar um modelo que estende AbstractUser.
+from decimal import Decimal # Boa prática para default em DecimalField se necessário
 
 # 1. Model para Usuarios
 class Usuario(AbstractUser):
-    # O AbstractUser já inclui: username, first_name, last_name, email, password, is_staff, is_active, date_joined
     TIPO_USUARIO_CHOICES = [
         ('admin', 'Administrador'),
         ('mecanico', 'Mecânico'),
@@ -26,12 +17,8 @@ class Usuario(AbstractUser):
         default='mecanico',
         help_text='Define o papel do usuário no sistema'
     )
-    # Adicionais, se quiser nome_completo separado (first_name e last_name já existem):
-    # nome_completo_display = models.CharField(max_length=255, blank=True, null=True, verbose_name="Nome Completo para Exibição")
-
 
     def __str__(self):
-        # Se first_name e last_name estiverem preenchidos, use-os. Senão, username.
         if self.first_name and self.last_name:
             return f"{self.first_name} {self.last_name} ({self.username})"
         return self.username
@@ -48,29 +35,28 @@ class Cliente(models.Model):
     endereco_complemento = models.CharField(max_length=100, blank=True, null=True)
     endereco_bairro = models.CharField(max_length=100, blank=True, null=True)
     endereco_cidade = models.CharField(max_length=100, blank=True, null=True)
-    endereco_estado = models.CharField(max_length=2, blank=True, null=True) # Ex: Sigla com 2 caracteres
+    endereco_estado = models.CharField(max_length=2, blank=True, null=True)
     endereco_cep = models.CharField(max_length=10, blank=True, null=True)
-    data_cadastro = models.DateTimeField(auto_now_add=True) # auto_now_add define a data/hora no momento da criação
+    data_cadastro = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.nome_completo
 
 # 3. Model para Veiculos
 class Veiculo(models.Model):
-    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='veiculos') # Relacionamento com Cliente
-    placa = models.CharField(max_length=10, unique=True) # Ex: AAA-9A99 ou AAA9A99
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='veiculos')
+    placa = models.CharField(max_length=10, unique=True)
     marca = models.CharField(max_length=100)
     modelo = models.CharField(max_length=100)
     ano_fabricacao = models.IntegerField(blank=True, null=True)
     ano_modelo = models.IntegerField(blank=True, null=True)
     cor = models.CharField(max_length=50, blank=True, null=True)
     chassi = models.CharField(max_length=50, unique=True, blank=True, null=True)
-    observacoes = models.TextField(blank=True, null=True) # TextField para textos mais longos
+    observacoes = models.TextField(blank=True, null=True)
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.marca} {self.modelo} ({self.placa}) - Cliente: {self.cliente.nome_completo}"
-
 
 # 4. Model para OrdensDeServico
 class OrdemDeServico(models.Model):
@@ -87,16 +73,15 @@ class OrdemDeServico(models.Model):
     numero_os = models.CharField(max_length=50, unique=True, help_text="Número único da Ordem de Serviço")
     cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, related_name='ordens_servico')
     veiculo = models.ForeignKey(Veiculo, on_delete=models.PROTECT, related_name='ordens_servico')
-    # Usamos settings.AUTH_USER_MODEL para referenciar o usuário de forma flexível
     mecanico_responsavel = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,  # Se o mecânico for deletado, a OS não é deletada, apenas o campo fica nulo
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='os_responsaveis',
-        limit_choices_to={'tipo_usuario': 'mecanico'}  # Opcional: Limitar a escolha a usuários do tipo mecânico
+        limit_choices_to={'tipo_usuario': 'mecanico'}
     )
-    data_entrada = models.DateTimeField(auto_now_add=True)
+    data_entrada = models.DateTimeField(auto_now_add=True) # Registra a criação/entrada
     data_saida_prevista = models.DateField(blank=True, null=True)
     data_conclusao = models.DateTimeField(blank=True, null=True)
 
@@ -105,10 +90,10 @@ class OrdemDeServico(models.Model):
     servicos_executados_obs = models.TextField(blank=True, null=True,
                                                help_text="Observações gerais sobre os serviços executados")
 
-    valor_total_pecas = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    valor_total_servicos = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    valor_desconto = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    # valor_total_os será calculado, podemos usar um @property ou salvar explicitamente
+    valor_total_pecas = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    valor_total_servicos = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    valor_desconto = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    valor_total_os = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00')) # Campo persistido para o total
 
     status_os = models.CharField(
         max_length=30,
@@ -116,19 +101,15 @@ class OrdemDeServico(models.Model):
         default='Aberta'
     )
     observacoes_internas = models.TextField(blank=True, null=True)
-    data_criacao_os = models.DateTimeField(
-        auto_now_add=True)  # Redundante com data_entrada se data_entrada for auto_now_add. Manter um ou outro. Vamos usar data_entrada.
+    # data_criacao_os foi removido por redundância com data_entrada (auto_now_add=True)
 
-    def calcular_valor_total_os(self):
-        # Este método pode ser usado para calcular o valor total,
-        # mas para armazenar, você precisaria chamar e salvar, ou usar sinais.
-        # Por enquanto, vamos focar nos campos que armazenam os totais de peças e serviços.
-        # O total da OS pode ser uma property no model ou um campo atualizado via signals/save method.
-        return (self.valor_total_pecas + self.valor_total_servicos) - self.valor_desconto
-
-    @property
-    def valor_total_os_calculado(self):
-        return (self.valor_total_pecas or 0) + (self.valor_total_servicos or 0) - (self.valor_desconto or 0)
+    # O método calcular_valor_total_os que você tinha pode ser usado internamente
+    # pelos signals ou pelo método save da OS, se necessário, mas não é mais uma @property
+    # para o serializer, já que valor_total_os agora é um campo.
+    def get_valor_total_calculado(self): # Renomeado para evitar conflito se mantiver property por algum motivo
+        return (self.valor_total_pecas or Decimal('0.00')) + \
+               (self.valor_total_servicos or Decimal('0.00')) - \
+               (self.valor_desconto or Decimal('0.00'))
 
     def __str__(self):
         return f"OS Nº: {self.numero_os} - Cliente: {self.cliente.nome_completo} - Veículo: {self.veiculo.placa}"
@@ -138,17 +119,16 @@ class OrdemDeServico(models.Model):
         verbose_name_plural = "Ordens de Serviço"
         ordering = ['-data_entrada']
 
-
 # 5. Model para ItensOsPecas
 class ItemOsPeca(models.Model):
     ordem_servico = models.ForeignKey(OrdemDeServico, on_delete=models.CASCADE, related_name='itens_pecas')
     descricao_peca = models.CharField(max_length=255)
-    quantidade = models.DecimalField(max_digits=10, decimal_places=2)  # Para permitir ex: 1.5 metros, etc.
+    quantidade = models.DecimalField(max_digits=10, decimal_places=2)
     valor_unitario = models.DecimalField(max_digits=10, decimal_places=2)
 
     @property
     def valor_total_item(self):
-        return self.quantidade * self.valor_unitario
+        return (self.quantidade or Decimal('0.00')) * (self.valor_unitario or Decimal('0.00'))
 
     def __str__(self):
         return f"{self.quantidade}x {self.descricao_peca} (OS: {self.ordem_servico.numero_os})"
@@ -156,7 +136,6 @@ class ItemOsPeca(models.Model):
     class Meta:
         verbose_name = "Item de Peça da OS"
         verbose_name_plural = "Itens de Peças da OS"
-
 
 # 6. Model para ItensOsServicos
 class ItemOsServico(models.Model):
@@ -189,7 +168,7 @@ class Agendamento(models.Model):
         null=True,
         blank=True,
         related_name='agendamentos_responsaveis',
-        limit_choices_to={'tipo_usuario': 'mecanico'} # Opcional: Limitar a escolha a usuários do tipo mecânico
+        limit_choices_to={'tipo_usuario': 'mecanico'}
     )
     data_agendamento = models.DateField()
     hora_agendamento = models.TimeField()
@@ -209,4 +188,4 @@ class Agendamento(models.Model):
         verbose_name = "Agendamento"
         verbose_name_plural = "Agendamentos"
         ordering = ['data_agendamento', 'hora_agendamento']
-        unique_together = [['data_agendamento', 'hora_agendamento', 'mecanico_atribuido']] # Evita duplo agendamento para o mesmo mecânico no mesmo horário. Pode ser ajustado se não houver mecânico atribuído.
+        unique_together = [['data_agendamento', 'hora_agendamento', 'mecanico_atribuido']]
