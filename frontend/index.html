@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oficina - Gestão Completa</title> <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <title>Oficina - Gestão Completa</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
@@ -21,16 +22,33 @@
             </main>
         </section>
 
-        <hr class="my-5"> <section id="veiculos-section" class="mb-5">
+        <hr class="my-5">
+
+        <section id="veiculos-section" class="mb-5">
             <header class="d-flex justify-content-between align-items-center mb-4">
                 <h1>Veículos da Oficina</h1>
                 <button id="btnNovoVeiculo" class="btn btn-success">Novo Veículo</button>
             </header>
             <main>
                 <h2>Lista de Veículos</h2>
-                <div class="alert alert-info">Selecione um cliente na lista acima para ver ou adicionar veículos, ou veja todos os veículos abaixo. (Funcionalidade de filtro por cliente a ser implementada).</div>
+                <div class="alert alert-info">A lista de veículos é geral. A seleção de cliente no formulário de veículo define a associação.</div>
                 <ul id="lista-veiculos" class="list-group">
                     <li class="list-group-item">Carregando veículos...</li>
+                </ul>
+            </main>
+        </section>
+
+        <hr class="my-5">
+
+        <section id="agendamentos-section" class="mb-5">
+            <header class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Agendamentos</h1>
+                <button id="btnNovoAgendamento" class="btn btn-info">Novo Agendamento</button>
+            </header>
+            <main>
+                <h2>Lista de Agendamentos</h2>
+                <ul id="lista-agendamentos" class="list-group">
+                    <li class="list-group-item">Carregando agendamentos...</li>
                 </ul>
             </main>
         </section>
@@ -117,7 +135,8 @@
                 </div>
                 <div class="modal-body">
                     <form id="formVeiculo">
-                        <input type="hidden" id="veiculoId"> <div class="form-group">
+                        <input type="hidden" id="veiculoId">
+                        <div class="form-group">
                             <label for="veiculoCliente">Cliente*</label>
                             <select class="form-control" id="veiculoCliente" required>
                                 <option value="">Selecione um Cliente...</option>
@@ -160,6 +179,90 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-success" id="btnSalvarVeiculo">Salvar Veículo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="agendamentoModal" tabindex="-1" role="dialog" aria-labelledby="agendamentoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="agendamentoModalLabel">Adicionar Novo Agendamento</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAgendamento">
+                        <input type="hidden" id="agendamentoId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoCliente">Cliente*</label>
+                                    <select class="form-control" id="agendamentoCliente" required>
+                                        <option value="">Selecione um Cliente...</option>
+                                        </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoVeiculo">Veículo*</label>
+                                    <select class="form-control" id="agendamentoVeiculo" required>
+                                        <option value="">Selecione um cliente primeiro...</option>
+                                        </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoData">Data do Agendamento*</label>
+                                    <input type="date" class="form-control" id="agendamentoData" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoHora">Hora do Agendamento*</label>
+                                    <input type="time" class="form-control" id="agendamentoHora" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="agendamentoServicoSolicitado">Serviço Solicitado*</label>
+                            <textarea class="form-control" id="agendamentoServicoSolicitado" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoMecanico">Mecânico (Opcional)</label>
+                                    <select class="form-control" id="agendamentoMecanico">
+                                        <option value="">Selecione um Mecânico...</option>
+                                        </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoStatus">Status*</label>
+                                    <select class="form-control" id="agendamentoStatus" required>
+                                        <option value="Agendado" selected>Agendado</option>
+                                        <option value="Confirmado">Confirmado</option>
+                                        <option value="Realizado">Realizado</option>
+                                        <option value="Cancelado">Cancelado</option>
+                                        <option value="Nao Compareceu">Não Compareceu</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="agendamentoObservacoes">Observações</label>
+                            <textarea class="form-control" id="agendamentoObservacoes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-info" id="btnSalvarAgendamento">Salvar Agendamento</button>
                 </div>
             </div>
         </div>
