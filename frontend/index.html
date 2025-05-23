@@ -3,22 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Oficina - Gestão de Clientes</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/estilos.css"> </head>
+    <title>Oficina - Gestão Completa</title> <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
 <body>
     <div class="container mt-5">
-        <header class="mb-4">
-            <h1>Clientes da Oficina</h1>
-            <button id="btnNovoCliente" class="btn btn-primary mb-3">Novo Cliente</button>
-        </header>
+        <section id="clientes-section" class="mb-5">
+            <header class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Clientes da Oficina</h1>
+                <button id="btnNovoCliente" class="btn btn-primary">Novo Cliente</button>
+            </header>
+            <main>
+                <h2>Lista de Clientes</h2>
+                <ul id="lista-clientes" class="list-group">
+                    <li class="list-group-item">Carregando clientes...</li>
+                </ul>
+            </main>
+        </section>
 
-        <main>
-            <h2>Lista de Clientes</h2>
-            <ul id="lista-clientes" class="list-group">
-                <li class="list-group-item">Carregando clientes...</li>
-            </ul>
-        </main>
+        <hr class="my-5"> <section id="veiculos-section" class="mb-5">
+            <header class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Veículos da Oficina</h1>
+                <button id="btnNovoVeiculo" class="btn btn-success">Novo Veículo</button>
+            </header>
+            <main>
+                <h2>Lista de Veículos</h2>
+                <div class="alert alert-info">Selecione um cliente na lista acima para ver ou adicionar veículos, ou veja todos os veículos abaixo. (Funcionalidade de filtro por cliente a ser implementada).</div>
+                <ul id="lista-veiculos" class="list-group">
+                    <li class="list-group-item">Carregando veículos...</li>
+                </ul>
+            </main>
+        </section>
     </div>
 
     <div class="modal fade" id="clienteModal" tabindex="-1" role="dialog" aria-labelledby="clienteModalLabel" aria-hidden="true">
@@ -32,7 +47,8 @@
                 </div>
                 <div class="modal-body">
                     <form id="formCliente">
-                        <input type="hidden" id="clienteId"> <div class="form-group">
+                        <input type="hidden" id="clienteId">
+                        <div class="form-group">
                             <label for="nomeCompleto">Nome Completo*</label>
                             <input type="text" class="form-control" id="nomeCompleto" autocomplete="name" required>
                         </div>
@@ -85,6 +101,65 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="btnSalvarCliente">Salvar Cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="veiculoModal" tabindex="-1" role="dialog" aria-labelledby="veiculoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="veiculoModalLabel">Adicionar Novo Veículo</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formVeiculo">
+                        <input type="hidden" id="veiculoId"> <div class="form-group">
+                            <label for="veiculoCliente">Cliente*</label>
+                            <select class="form-control" id="veiculoCliente" required>
+                                <option value="">Selecione um Cliente...</option>
+                                </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoPlaca">Placa*</label>
+                            <input type="text" class="form-control" id="veiculoPlaca" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoMarca">Marca*</label>
+                            <input type="text" class="form-control" id="veiculoMarca" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoModelo">Modelo*</label>
+                            <input type="text" class="form-control" id="veiculoModelo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoAnoFabricacao">Ano Fabricação</label>
+                            <input type="number" class="form-control" id="veiculoAnoFabricacao">
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoAnoModelo">Ano Modelo</label>
+                            <input type="number" class="form-control" id="veiculoAnoModelo">
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoCor">Cor</label>
+                            <input type="text" class="form-control" id="veiculoCor">
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoChassi">Chassi</label>
+                            <input type="text" class="form-control" id="veiculoChassi">
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoObservacoes">Observações</label>
+                            <textarea class="form-control" id="veiculoObservacoes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btnSalvarVeiculo">Salvar Veículo</button>
                 </div>
             </div>
         </div>

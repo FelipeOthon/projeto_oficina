@@ -5,41 +5,77 @@ import {
     handleSalvarCliente,
     abrirModalEditarCliente,
     handleDeletarCliente,
-    handleVerDetalhesCliente // Mesmo que seja placeholder, vamos ligar o evento
+    handleVerDetalhesCliente
 } from './clienteUI.js';
+
+import {
+    renderVeiculos,
+    abrirModalNovoVeiculo,
+    handleSalvarVeiculo,
+    abrirModalEditarVeiculo,
+    handleDeletarVeiculo,
+    handleVerDetalhesVeiculo
+} from './veiculoUI.js'; // Importando funcionalidades de Veiculo
 
 // Evento que dispara quando o HTML da página foi completamente carregado e parseado
 document.addEventListener('DOMContentLoaded', function() {
-    // Carrega a lista inicial de clientes
+    // Carrega as listas iniciais
     renderClientes();
+    renderVeiculos(); // Adiciona o carregamento de veículos
 
-    // Adiciona listener para o botão "Novo Cliente"
+    // --- Listeners para Clientes ---
     const btnNovoCliente = document.getElementById('btnNovoCliente');
     if (btnNovoCliente) {
         btnNovoCliente.addEventListener('click', abrirModalNovoCliente);
     }
 
-    // Adiciona listener para o botão "Salvar Cliente" dentro do modal
     const btnSalvarCliente = document.getElementById('btnSalvarCliente');
     if (btnSalvarCliente) {
         btnSalvarCliente.addEventListener('click', handleSalvarCliente);
     }
 
-    // Adiciona listeners para os botões de Ações na lista de clientes (Editar, Deletar, Detalhes)
-    // Usando delegação de eventos, pois os itens da lista são criados dinamicamente
     const listaClientesUI = document.getElementById('lista-clientes');
     if (listaClientesUI) {
         listaClientesUI.addEventListener('click', function(event) {
-            const target = event.target; // Elemento que foi clicado
-            const clienteId = target.dataset.id; // Pega o data-id do botão
+            const target = event.target;
+            const clienteId = target.dataset.id;
 
-            if (clienteId) { // Verifica se clicamos em um botão com data-id
+            if (clienteId) {
                 if (target.classList.contains('btn-editar')) {
                     abrirModalEditarCliente(clienteId);
                 } else if (target.classList.contains('btn-deletar')) {
                     handleDeletarCliente(clienteId);
                 } else if (target.classList.contains('btn-detalhes')) {
                     handleVerDetalhesCliente(clienteId);
+                }
+            }
+        });
+    }
+
+    // --- Listeners para Veículos (NOVOS) ---
+    const btnNovoVeiculo = document.getElementById('btnNovoVeiculo');
+    if (btnNovoVeiculo) {
+        btnNovoVeiculo.addEventListener('click', abrirModalNovoVeiculo);
+    }
+
+    const btnSalvarVeiculo = document.getElementById('btnSalvarVeiculo');
+    if (btnSalvarVeiculo) {
+        btnSalvarVeiculo.addEventListener('click', handleSalvarVeiculo);
+    }
+
+    const listaVeiculosUI = document.getElementById('lista-veiculos');
+    if (listaVeiculosUI) {
+        listaVeiculosUI.addEventListener('click', function(event) {
+            const target = event.target;
+            const veiculoId = target.dataset.id;
+
+            if (veiculoId) {
+                if (target.classList.contains('btn-editar-veiculo')) {
+                    abrirModalEditarVeiculo(veiculoId);
+                } else if (target.classList.contains('btn-deletar-veiculo')) {
+                    handleDeletarVeiculo(veiculoId);
+                } else if (target.classList.contains('btn-detalhes-veiculo')) {
+                    handleVerDetalhesVeiculo(veiculoId);
                 }
             }
         });
