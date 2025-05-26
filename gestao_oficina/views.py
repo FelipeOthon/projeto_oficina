@@ -2,14 +2,16 @@
 
 from .models import (
     Cliente, Veiculo, Agendamento,
-    OrdemDeServico, ItemOsPeca, ItemOsServico  # Adicionado ItemOsServico ao import dos models
+    OrdemDeServico, ItemOsPeca, ItemOsServico
 )
 from .serializers import (
     ClienteSerializer, VeiculoSerializer, AgendamentoSerializer,
-    OrdemDeServicoSerializer, ItemOsPecaSerializer, ItemOsServicoSerializer  # Adicionado ItemOsServicoSerializer
+    OrdemDeServicoSerializer, ItemOsPecaSerializer, ItemOsServicoSerializer
 )
 from rest_framework import generics
-
+from rest_framework.response import Response # Adicionado para respostas customizadas
+from rest_framework import status # Adicionado para códigos de status HTTP
+from django.db import IntegrityError # Adicionado para capturar o erro de deleção
 
 # from rest_framework import permissions # Para permissões, se necessário depois
 
@@ -19,7 +21,6 @@ class ClienteListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ClienteSerializer
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-
 class ClienteRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Cliente.objects.all()
     serializer_class = ClienteSerializer
@@ -27,18 +28,41 @@ class ClienteRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
 
-# --- VIEWS DE VEICULO COM DRF (JÁ EXISTENTES E CORRETAS) ---
+# --- VIEWS DE VEICULO COM DRF (MODIFICADA PARA TRATAR ERRO DE DELEÇÃO) ---
 class VeiculoListCreateAPIView(generics.ListCreateAPIView):
     queryset = Veiculo.objects.select_related('cliente').all().order_by('marca', 'modelo')
     serializer_class = VeiculoSerializer
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
 
 class VeiculoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Veiculo.objects.select_related('cliente').all()
     serializer_class = VeiculoSerializer
     lookup_field = 'pk'
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except IntegrityError:
+            # Se on_delete=PROTECT em OrdemDeServico.veiculo impede a deleção
+            if OrdemDeServico.objects.filter(veiculo=instance).exists():
+                return Response(
+                    {"detail": "Este veículo não pode ser excluído pois está referenciado em uma ou mais Ordens de Serviço."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            # Se on_delete=PROTECT em Agendamento.veiculo impede a deleção (se você mudar de CASCADE para PROTECT)
+            # elif Agendamento.objects.filter(veiculo=instance).exists():
+            #     return Response(
+            #         {"detail": "Este veículo não pode ser excluído pois está referenciado em um ou mais Agendamentos."},
+            #         status=status.HTTP_400_BAD_REQUEST
+            #     )
+            # Outros IntegrityErrors genéricos (raro para delete se não for FK)
+            return Response(
+                {"detail": "Não foi possível excluir o veículo devido a restrições de integridade."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 # --- VIEWS DE AGENDAMENTO COM DRF (JÁ EXISTENTES E CORRETAS) ---
@@ -47,7 +71,6 @@ class AgendamentoListCreateAPIView(generics.ListCreateAPIView):
         'data_agendamento', 'hora_agendamento')
     serializer_class = AgendamentoSerializer
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-
 
 class AgendamentoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Agendamento.objects.select_related('cliente', 'veiculo', 'mecanico_atribuido').all()
@@ -66,7 +89,6 @@ class OrdemDeServicoListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = OrdemDeServicoSerializer
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-
 class OrdemDeServicoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = OrdemDeServico.objects.select_related(
         'cliente', 'veiculo', 'mecanico_responsavel'
@@ -81,7 +103,6 @@ class OrdemDeServicoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyA
 # --- VIEWS PARA ITENS DE PEÇAS DE UMA OS (JÁ EXISTENTES E CORRETAS) ---
 class ItemOsPecaListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ItemOsPecaSerializer
-
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
@@ -92,57 +113,40 @@ class ItemOsPecaListCreateAPIView(generics.ListCreateAPIView):
         os_pk = self.kwargs['os_pk']
         ordem_servico = OrdemDeServico.objects.get(pk=os_pk)
         serializer.save(ordem_servico=ordem_servico)
-        # TODO: Lógica para atualizar totais da OrdemDeServico
-
+        # A lógica para atualizar totais da OrdemDeServico está nos signals.py
 
 class ItemOsPecaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ItemOsPecaSerializer
     lookup_url_kwarg = 'item_pk'
-
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         os_pk = self.kwargs['os_pk']
         return ItemOsPeca.objects.filter(ordem_servico_id=os_pk)
+    # A lógica para atualizar totais da OrdemDeServico em perform_update e perform_destroy está nos signals.py
 
-    # TODO: Lógica para atualizar totais da OrdemDeServico em perform_update e perform_destroy
 
-
-# --- VIEWS PARA ITENS DE SERVIÇOS DE UMA OS (NOVAS) ---
+# --- VIEWS PARA ITENS DE SERVIÇOS DE UMA OS (JÁ EXISTENTES E CORRETAS) ---
 class ItemOsServicoListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ItemOsServicoSerializer
-
-    # permission_classes = [permissions.IsAuthenticatedOrReadOnly] # Exemplo
+    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        """
-        Esta view deve retornar uma lista de todos os serviços
-        para a Ordem de Serviço especificada pela URL (os_pk).
-        """
         os_pk = self.kwargs['os_pk']
         return ItemOsServico.objects.filter(ordem_servico_id=os_pk)
 
     def perform_create(self, serializer):
-        """
-        Associa o novo serviço à Ordem de Serviço especificada na URL.
-        """
         os_pk = self.kwargs['os_pk']
         ordem_servico = OrdemDeServico.objects.get(pk=os_pk)
         serializer.save(ordem_servico=ordem_servico)
-        # TODO: Adicionar lógica para atualizar os totais da OrdemDeServico
-
+        # A lógica para atualizar totais da OrdemDeServico está nos signals.py
 
 class ItemOsServicoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ItemOsServicoSerializer
-    # permission_classes = [permissions.IsAuthenticatedOrReadOnly] # Exemplo
-    lookup_url_kwarg = 'item_pk'  # Usar 'item_pk' da URL para buscar o item
+    lookup_url_kwarg = 'item_pk'
+    # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
-        """
-        Esta view deve retornar o item do serviço especificado
-        pelo 'os_pk' e 'item_pk' da URL.
-        """
         os_pk = self.kwargs['os_pk']
         return ItemOsServico.objects.filter(ordem_servico_id=os_pk)
-
-    # TODO: Adicionar lógica para atualizar os totais da OrdemDeServico em perform_update e perform_destroy
+    # A lógica para atualizar totais da OrdemDeServico em perform_update e perform_destroy está nos signals.py

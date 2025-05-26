@@ -11,6 +11,7 @@ const veiculoModal = $('#veiculoModal'); // jQuery para o modal Bootstrap
 
 // Função para popular o dropdown de clientes no modal de veículo
 async function populateClientesDropdown(selectedClienteId = null) {
+    if (!veiculoClienteSelect) return;
     try {
         const clientes = await getClientes();
         veiculoClienteSelect.innerHTML = '<option value="">Selecione um Cliente...</option>'; // Opção padrão
@@ -19,7 +20,6 @@ async function populateClientesDropdown(selectedClienteId = null) {
                 const option = document.createElement('option');
                 option.value = cliente.id;
                 option.textContent = cliente.nome_completo;
-                // Converte selectedClienteId para número para comparação correta se vier de um data attribute
                 if (selectedClienteId && cliente.id === parseInt(selectedClienteId)) {
                     option.selected = true;
                 }
@@ -34,6 +34,7 @@ async function populateClientesDropdown(selectedClienteId = null) {
 
 // Função para renderizar a lista de veículos no HTML
 export async function renderVeiculos() {
+    if (!listaVeiculosUI) return;
     listaVeiculosUI.innerHTML = '<li class="list-group-item">Carregando veículos...</li>';
     try {
         const veiculos = await getVeiculos(); // Chama a função do service
@@ -66,35 +67,35 @@ export async function renderVeiculos() {
 
 // Função para abrir o modal para um novo veículo
 export async function abrirModalNovoVeiculo() {
+    if (!formVeiculo) return;
     formVeiculo.reset();
-    veiculoIdInput.value = '';
-    veiculoModalLabel.textContent = 'Adicionar Novo Veículo';
+    if(veiculoIdInput) veiculoIdInput.value = '';
+    if(veiculoModalLabel) veiculoModalLabel.textContent = 'Adicionar Novo Veículo';
     await populateClientesDropdown(); // Popula o dropdown de clientes
-    veiculoModal.modal('show');
+    if(veiculoModal.length) veiculoModal.modal('show');
 }
 
 // Função para abrir o modal para editar um veículo existente
 export async function abrirModalEditarVeiculo(id) {
+    console.log('[veiculoUI.js] -> abrirModalEditarVeiculo - ID recebido:', id, '- Tipo:', typeof id); // DEBUG
+    if (!formVeiculo) return;
     formVeiculo.reset();
-    veiculoModalLabel.textContent = 'Editar Veículo';
+    if(veiculoModalLabel) veiculoModalLabel.textContent = 'Editar Veículo';
     try {
-        // Popula o dropdown primeiro, depois seleciona o cliente do veículo
-        // Isso garante que a lista de clientes esteja carregada.
-        const veiculo = await getVeiculoById(id); // Chama a função do service
-        await populateClientesDropdown(veiculo.cliente); // Passa o ID do cliente atual do veículo
+        const veiculo = await getVeiculoById(id);
+        await populateClientesDropdown(veiculo.cliente);
 
-        veiculoIdInput.value = veiculo.id;
-        // O select de cliente já foi populado e o cliente correto selecionado por populateClientesDropdown
-        document.getElementById('veiculoPlaca').value = veiculo.placa || '';
-        document.getElementById('veiculoMarca').value = veiculo.marca || '';
-        document.getElementById('veiculoModelo').value = veiculo.modelo || '';
-        document.getElementById('veiculoAnoFabricacao').value = veiculo.ano_fabricacao || '';
-        document.getElementById('veiculoAnoModelo').value = veiculo.ano_modelo || '';
-        document.getElementById('veiculoCor').value = veiculo.cor || '';
-        document.getElementById('veiculoChassi').value = veiculo.chassi || '';
-        document.getElementById('veiculoObservacoes').value = veiculo.observacoes || '';
+        if(veiculoIdInput) veiculoIdInput.value = veiculo.id;
+        if(document.getElementById('veiculoPlaca')) document.getElementById('veiculoPlaca').value = veiculo.placa || '';
+        if(document.getElementById('veiculoMarca')) document.getElementById('veiculoMarca').value = veiculo.marca || '';
+        if(document.getElementById('veiculoModelo')) document.getElementById('veiculoModelo').value = veiculo.modelo || '';
+        if(document.getElementById('veiculoAnoFabricacao')) document.getElementById('veiculoAnoFabricacao').value = veiculo.ano_fabricacao || '';
+        if(document.getElementById('veiculoAnoModelo')) document.getElementById('veiculoAnoModelo').value = veiculo.ano_modelo || '';
+        if(document.getElementById('veiculoCor')) document.getElementById('veiculoCor').value = veiculo.cor || '';
+        if(document.getElementById('veiculoChassi')) document.getElementById('veiculoChassi').value = veiculo.chassi || '';
+        if(document.getElementById('veiculoObservacoes')) document.getElementById('veiculoObservacoes').value = veiculo.observacoes || '';
 
-        veiculoModal.modal('show');
+        if(veiculoModal.length) veiculoModal.modal('show');
     } catch (error) {
         console.error('Erro ao carregar veículo para edição:', error);
         alert(`Erro ao carregar dados do veículo: ${error.message}`);
@@ -103,17 +104,18 @@ export async function abrirModalEditarVeiculo(id) {
 
 // Função para lidar com o submit do formulário de veículo (criar ou atualizar)
 export async function handleSalvarVeiculo() {
+    if (!formVeiculo || !veiculoIdInput) return;
     const id = veiculoIdInput.value;
     const dadosVeiculo = {
-        cliente: document.getElementById('veiculoCliente').value, // Pega o ID do cliente selecionado
-        placa: document.getElementById('veiculoPlaca').value,
-        marca: document.getElementById('veiculoMarca').value,
-        modelo: document.getElementById('veiculoModelo').value,
-        ano_fabricacao: document.getElementById('veiculoAnoFabricacao').value || null,
-        ano_modelo: document.getElementById('veiculoAnoModelo').value || null,
-        cor: document.getElementById('veiculoCor').value || null,
-        chassi: document.getElementById('veiculoChassi').value || null,
-        observacoes: document.getElementById('veiculoObservacoes').value || null,
+        cliente: document.getElementById('veiculoCliente')?.value,
+        placa: document.getElementById('veiculoPlaca')?.value,
+        marca: document.getElementById('veiculoMarca')?.value,
+        modelo: document.getElementById('veiculoModelo')?.value,
+        ano_fabricacao: document.getElementById('veiculoAnoFabricacao')?.value || null,
+        ano_modelo: document.getElementById('veiculoAnoModelo')?.value || null,
+        cor: document.getElementById('veiculoCor')?.value || null,
+        chassi: document.getElementById('veiculoChassi')?.value || null,
+        observacoes: document.getElementById('veiculoObservacoes')?.value || null,
     };
 
     if (!dadosVeiculo.cliente || !dadosVeiculo.placa || !dadosVeiculo.marca || !dadosVeiculo.modelo) {
@@ -121,7 +123,6 @@ export async function handleSalvarVeiculo() {
         return;
     }
 
-    // Converte anos para inteiros se preenchidos, ou null se vazios/não numéricos
     const anoFab = parseInt(dadosVeiculo.ano_fabricacao);
     dadosVeiculo.ano_fabricacao = !isNaN(anoFab) ? anoFab : null;
 
@@ -129,15 +130,15 @@ export async function handleSalvarVeiculo() {
     dadosVeiculo.ano_modelo = !isNaN(anoMod) ? anoMod : null;
 
     try {
-        if (id) { // Atualizar veículo existente
+        if (id) {
             await updateVeiculo(id, dadosVeiculo);
             alert('Veículo atualizado com sucesso!');
-        } else { // Criar novo veículo
+        } else {
             await createVeiculo(dadosVeiculo);
             alert('Veículo criado com sucesso!');
         }
-        veiculoModal.modal('hide');
-        renderVeiculos(); // Re-renderiza a lista de veículos
+        if(veiculoModal.length) veiculoModal.modal('hide');
+        renderVeiculos();
     } catch (error) {
         console.error('Erro ao salvar veículo:', error);
         alert(`Erro ao salvar veículo: ${error.message}`);
@@ -146,6 +147,7 @@ export async function handleSalvarVeiculo() {
 
 // Função para lidar com a deleção de um veículo
 export async function handleDeletarVeiculo(id) {
+    console.log('[veiculoUI.js] -> handleDeletarVeiculo - ID recebido:', id, '- Tipo:', typeof id); // DEBUG
     if (confirm(`Tem certeza que deseja deletar o veículo com ID: ${id}? Esta ação não pode ser desfeita.`)) {
         try {
             await deleteVeiculoAPI(id);
@@ -160,5 +162,6 @@ export async function handleDeletarVeiculo(id) {
 
 // Placeholder para detalhes do veículo
 export function handleVerDetalhesVeiculo(id) {
+    console.log('[veiculoUI.js] -> handleVerDetalhesVeiculo - ID recebido:', id, '- Tipo:', typeof id); // DEBUG
     alert(`Ver detalhes do veículo ID: ${id} (a ser implementado)`);
 }

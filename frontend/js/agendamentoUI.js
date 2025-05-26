@@ -1,22 +1,25 @@
 // frontend/js/agendamentoUI.js
 import { getAgendamentos, getAgendamentoById, createAgendamento, updateAgendamento, deleteAgendamentoAPI } from './agendamentoService.js';
 import { getClientes } from './clienteService.js';
-import { getVeiculos } from './veiculoService.js'; // Para popular dropdown de veículos
+import { getVeiculos } from './veiculoService.js';
 
-// IDs dos elementos HTML que serão criados no index.html para agendamentos
 const listaAgendamentosUI = document.getElementById('lista-agendamentos');
 const formAgendamento = document.getElementById('formAgendamento');
 const agendamentoIdInput = document.getElementById('agendamentoId');
 const agendamentoClienteSelect = document.getElementById('agendamentoCliente');
 const agendamentoVeiculoSelect = document.getElementById('agendamentoVeiculo');
-const agendamentoMecanicoSelect = document.getElementById('agendamentoMecanico'); // Opcional, se você adicionar este campo ao modal
+const agendamentoMecanicoSelect = document.getElementById('agendamentoMecanico');
 const agendamentoModalLabel = document.getElementById('agendamentoModalLabel');
-const agendamentoModal = $('#agendamentoModal'); // jQuery para o modal Bootstrap
+const agendamentoModal = $('#agendamentoModal');
 
-// --- Funções para Popular Selects (Dropdowns) ---
-async function populateClientesParaAgendamento(selectedClienteId = null) {
-    if (!agendamentoClienteSelect) return; // Evita erro se o elemento não existir
+// Adicionado 'export' aqui
+export async function populateClientesParaAgendamento(selectedClienteId = null) {
+    if (!agendamentoClienteSelect) {
+        console.error("Elemento #agendamentoCliente não encontrado para popular clientes.");
+        return;
+    }
     try {
+        console.log("[agendamentoUI.js] Buscando clientes para dropdown...");
         const clientes = await getClientes();
         agendamentoClienteSelect.innerHTML = '<option value="">Selecione um Cliente...</option>';
         if (Array.isArray(clientes) && clientes.length > 0) {
@@ -29,6 +32,9 @@ async function populateClientesParaAgendamento(selectedClienteId = null) {
                 }
                 agendamentoClienteSelect.appendChild(option);
             });
+            console.log("[agendamentoUI.js] Dropdown de clientes populado.");
+        } else {
+            console.log("[agendamentoUI.js] Nenhum cliente encontrado para popular dropdown.");
         }
     } catch (error) {
         console.error('Erro ao popular dropdown de clientes para agendamento:', error);
@@ -36,33 +42,44 @@ async function populateClientesParaAgendamento(selectedClienteId = null) {
     }
 }
 
-async function populateVeiculosParaAgendamento(clienteId, selectedVeiculoId = null) {
-    if (!agendamentoVeiculoSelect) return; // Evita erro se o elemento não existir
-    agendamentoVeiculoSelect.innerHTML = '<option value="">Selecione um Veículo...</option>';
-    if (!clienteId) {
+// Adicionado 'export' aqui
+export async function populateVeiculosParaAgendamento(clienteId, selectedVeiculoId = null) {
+    console.log('[agendamentoUI.js] populateVeiculosParaAgendamento chamado com clienteId:', clienteId, 'e selectedVeiculoId:', selectedVeiculoId); // DEBUG
+    if (!agendamentoVeiculoSelect) {
+        console.error("Elemento #agendamentoVeiculo não encontrado.");
+        return;
+    }
+    agendamentoVeiculoSelect.innerHTML = '<option value="">Carregando veículos...</option>';
+    if (!clienteId || clienteId === "") { // Verifica se clienteId é vazio ou null
         agendamentoVeiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro...</option>';
+        console.log('[agendamentoUI.js] Nenhum clienteId fornecido para populateVeiculosParaAgendamento.');
         return;
     }
     try {
-        // Idealmente, você teria um endpoint /api/clientes/<id_cliente>/veiculos/
-        // Por enquanto, buscamos todos e filtramos.
         const todosVeiculos = await getVeiculos();
+        console.log('[agendamentoUI.js] Todos os veículos buscados:', todosVeiculos); // DEBUG
+        agendamentoVeiculoSelect.innerHTML = '<option value="">Selecione um Veículo...</option>';
         if (Array.isArray(todosVeiculos) && todosVeiculos.length > 0) {
-            // No DRF, o campo 'cliente' no VeiculoSerializer é o ID do cliente.
-            const veiculosDoCliente = todosVeiculos.filter(v => v.cliente === parseInt(clienteId));
+            const veiculosDoCliente = todosVeiculos.filter(v => {
+                // console.log(`[agendamentoUI.js] Filtrando: Veículo ID ${v.id}, Cliente do Veículo: ${v.cliente}, Cliente Selecionado: ${parseInt(clienteId)}`); // DEBUG
+                return v.cliente === parseInt(clienteId);
+            });
+            console.log('[agendamentoUI.js] Veículos filtrados para o cliente:', veiculosDoCliente); // DEBUG
             if (veiculosDoCliente.length > 0) {
                 veiculosDoCliente.forEach(veiculo => {
                     const option = document.createElement('option');
                     option.value = veiculo.id;
-                    option.textContent = `${veiculo.marca} ${veiculo.modelo} (${veiculo.placa})`;
+                    option.textContent = `${veiculo.marca} ${veiculo.modelo} (${veiculo.placa})`; // CORRIGIDO (removido span)
                     if (selectedVeiculoId && veiculo.id === parseInt(selectedVeiculoId)) {
                         option.selected = true;
                     }
                     agendamentoVeiculoSelect.appendChild(option);
                 });
             } else {
-                 agendamentoVeiculoSelect.innerHTML = '<option value="">Nenhum veículo para este cliente</option>';
+                 agendamentoVeiculoSelect.innerHTML = '<option value="">Nenhum veículo cadastrado para este cliente</option>';
             }
+        } else {
+            agendamentoVeiculoSelect.innerHTML = '<option value="">Nenhum veículo encontrado no sistema</option>';
         }
     } catch (error) {
         console.error('Erro ao popular dropdown de veículos para agendamento:', error);
@@ -70,22 +87,8 @@ async function populateVeiculosParaAgendamento(clienteId, selectedVeiculoId = nu
     }
 }
 
-// Função para popular mecânicos (Exemplo, se você tiver um endpoint para buscar usuários do tipo 'mecanico')
-// async function populateMecanicosParaAgendamento(selectedMecanicoId = null) {
-//     if (!agendamentoMecanicoSelect) return;
-//     try {
-//         // Supondo uma função em usuarioService.js: const usuarios = await getUsuariosPorTipo('mecanico');
-//         // agendamentoMecanicoSelect.innerHTML = '<option value="">Selecione um Mecânico (Opcional)...</option>';
-//         // ... lógica para popular o select ...
-//     } catch (error) {
-//         console.error('Erro ao popular mecânicos:', error);
-//         agendamentoMecanicoSelect.innerHTML = '<option value="">Erro ao carregar mecânicos</option>';
-//     }
-// }
-
-
-// Função para renderizar a lista de agendamentos no HTML
 export async function renderAgendamentos() {
+    // ... (código existente, verifique os console.warn e console.error se os elementos não forem encontrados) ...
     if (!listaAgendamentosUI) {
         console.warn("Elemento #lista-agendamentos não encontrado no DOM.");
         return;
@@ -98,7 +101,6 @@ export async function renderAgendamentos() {
             agendamentos.forEach(ag => {
                 const item = document.createElement('li');
                 item.className = 'list-group-item';
-                // Formata a data e hora para exibição
                 const dataFormatada = ag.data_agendamento ? new Date(ag.data_agendamento + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
                 const horaFormatada = ag.hora_agendamento ? ag.hora_agendamento.substring(0,5) : 'N/A';
 
@@ -125,37 +127,44 @@ export async function renderAgendamentos() {
     }
 }
 
-// Função para abrir o modal para um novo agendamento
 export async function abrirModalNovoAgendamento() {
-    if (!formAgendamento) return;
+    // ... (código existente, adicionei verificações de nulidade) ...
+    if (!formAgendamento) { console.error("Formulário de agendamento não encontrado."); return; }
     formAgendamento.reset();
     if (agendamentoIdInput) agendamentoIdInput.value = '';
     if (agendamentoModalLabel) agendamentoModalLabel.textContent = 'Adicionar Novo Agendamento';
-    await populateClientesParaAgendamento();
-    if (agendamentoVeiculoSelect) agendamentoVeiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro...</option>';
-    // await populateMecanicosParaAgendamento(); // Descomente se for usar
-    if (agendamentoModal.length) agendamentoModal.modal('show'); // Verifica se o elemento modal existe
+
+    await populateClientesParaAgendamento(); // Popula clientes
+
+    if (agendamentoVeiculoSelect) agendamentoVeiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro...</option>'; // Reseta veículos
+
+    // Limpa o select de mecânicos (se existir)
+    if (agendamentoMecanicoSelect) agendamentoMecanicoSelect.innerHTML = '<option value="">Selecione um Mecânico (Opcional)...</option>';
+    // await populateMecanicosParaAgendamento(); // Se for implementar mecânicos
+
+    if (agendamentoModal.length) agendamentoModal.modal('show');
 }
 
-// Função para abrir o modal para editar um agendamento existente
 export async function abrirModalEditarAgendamento(id) {
-    if (!formAgendamento) return;
+    console.log('[agendamentoUI.js] -> abrirModalEditarAgendamento - ID recebido:', id, '- Tipo:', typeof id);
+    // ... (código existente, adicione verificações de nulidade para elementos do form se necessário) ...
+    if (!formAgendamento) { console.error("Formulário de agendamento não encontrado."); return; }
     formAgendamento.reset();
     if (agendamentoModalLabel) agendamentoModalLabel.textContent = 'Editar Agendamento';
     try {
         const agendamento = await getAgendamentoById(id);
+        if (!agendamento) {
+            alert(`Agendamento com ID ${id} não encontrado para edição.`);
+            return;
+        }
         await populateClientesParaAgendamento(agendamento.cliente);
         await populateVeiculosParaAgendamento(agendamento.cliente, agendamento.veiculo);
-        // await populateMecanicosParaAgendamento(agendamento.mecanico_atribuido); // Descomente se for usar
+        // await populateMecanicosParaAgendamento(agendamento.mecanico_atribuido);
 
         if (agendamentoIdInput) agendamentoIdInput.value = agendamento.id;
-        // Certifique-se de que os IDs dos elementos do formulário existem no seu HTML
-        if (document.getElementById('agendamentoData')) document.getElementById('agendamentoData').value = agendamento.data_agendamento;
-        if (document.getElementById('agendamentoHora')) document.getElementById('agendamentoHora').value = agendamento.hora_agendamento.substring(0,5);
-        if (document.getElementById('agendamentoServicoSolicitado')) document.getElementById('agendamentoServicoSolicitado').value = agendamento.servico_solicitado || '';
-        if (document.getElementById('agendamentoStatus')) document.getElementById('agendamentoStatus').value = agendamento.status_agendamento || 'Agendado';
-        if (document.getElementById('agendamentoObservacoes')) document.getElementById('agendamentoObservacoes').value = agendamento.observacoes || '';
-        // if (document.getElementById('agendamentoMecanico') && agendamento.mecanico_atribuido) document.getElementById('agendamentoMecanico').value = agendamento.mecanico_atribuido;
+        const dataElem = document.getElementById('agendamentoData');
+        if (dataElem) dataElem.value = agendamento.data_agendamento;
+        // ... (restante dos campos, com verificações if (elemento) antes de .value)
 
         if (agendamentoModal.length) agendamentoModal.modal('show');
     } catch (error) {
@@ -164,9 +173,10 @@ export async function abrirModalEditarAgendamento(id) {
     }
 }
 
-// Função para lidar com o submit do formulário de agendamento
+// ... (handleSalvarAgendamento, handleDeletarAgendamento, handleVerDetalhesAgendamento como estavam, mas adicione os console.log nos de deletar/detalhes se quiser)
+// Relembrando:
 export async function handleSalvarAgendamento() {
-    if (!formAgendamento) return;
+    if (!formAgendamento || !agendamentoIdInput) return;
     const id = agendamentoIdInput.value;
     const dadosAgendamento = {
         cliente: document.getElementById('agendamentoCliente')?.value,
@@ -200,8 +210,8 @@ export async function handleSalvarAgendamento() {
     }
 }
 
-// Função para lidar com a deleção de um agendamento
 export async function handleDeletarAgendamento(id) {
+    console.log('[agendamentoUI.js] -> handleDeletarAgendamento - ID recebido:', id, '- Tipo:', typeof id);
     if (confirm(`Tem certeza que deseja deletar o agendamento com ID: ${id}?`)) {
         try {
             await deleteAgendamentoAPI(id);
@@ -214,7 +224,7 @@ export async function handleDeletarAgendamento(id) {
     }
 }
 
-// Placeholder para detalhes do agendamento
 export function handleVerDetalhesAgendamento(id) {
+    console.log('[agendamentoUI.js] -> handleVerDetalhesAgendamento - ID recebido:', id, '- Tipo:', typeof id);
     alert(`Ver detalhes do agendamento ID: ${id} (a ser implementado)`);
 }

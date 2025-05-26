@@ -5,10 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ddb8d25-419f-4653-b538-52ae18089593" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/frontend/js/agendamentoService.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/js/agendamentoUI.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/agendamentoService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/agendamentoService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/agendamentoUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/agendamentoUI.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/veiculoService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/veiculoService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/veiculoUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/veiculoUI.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,23 +42,23 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "DefaultHtmlFileTemplate": "HTML File",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "ignore.virus.scanning.warn.message": "true",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\felip\PycharmProjects\projeto_oficina\frontend\js" />
@@ -103,7 +107,8 @@
       <option name="presentableId" value="Default" />
       <updated>1747928258432</updated>
       <workItem from="1747928259712" duration="7601000" />
-      <workItem from="1748003103102" duration="17571000" />
+      <workItem from="1748003103102" duration="17812000" />
+      <workItem from="1748256562594" duration="4866000" />
     </task>
     <servers />
   </component>
