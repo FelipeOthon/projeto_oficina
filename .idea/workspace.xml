@@ -5,19 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ddb8d25-419f-4653-b538-52ae18089593" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/gestao_oficina/permissions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/agendamentoService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/agendamentoService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/clienteService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/clienteService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/itemOsPecaService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/itemOsPecaService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/itemOsServicoService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/itemOsServicoService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/main.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/ordemDeServicoService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/ordemDeServicoService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/veiculoService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/veiculoService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gestao_oficina/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/projeto_oficina/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/projeto_oficina/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/projeto_oficina/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/projeto_oficina/urls.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -114,7 +102,7 @@
       <updated>1747928258432</updated>
       <workItem from="1747928259712" duration="7601000" />
       <workItem from="1748003103102" duration="17812000" />
-      <workItem from="1748256562594" duration="25512000" />
+      <workItem from="1748256562594" duration="25834000" />
     </task>
     <servers />
   </component>
