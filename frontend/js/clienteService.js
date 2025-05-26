@@ -1,42 +1,39 @@
 // frontend/js/clienteService.js
-import { apiUrlBase } from './apiConfig.js'; // Importa a URL base da API
+import { apiUrlBase } from './apiConfig.js';
+// Importe handleLogout se quiser usá-la aqui em caso de 401.
+// Para isso, handleLogout precisaria ser exportada de main.js
+// import { handleLogout } from './main.js'; // Supondo que main.js exporte handleLogout
 
 const clientesUrl = `${apiUrlBase}/clientes/`;
 
-// Função para buscar todos os clientes
-export async function getClientes() {
-    const response = await fetch(clientesUrl);
-    if (!response.ok) {
-        throw new Error(`Erro HTTP ao buscar clientes! Status: ${response.status}`);
+// Função auxiliar para obter headers de autenticação
+function getAuthHeaders() {
+    const token = localStorage.getItem('access_token');
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
     }
-    return await response.json();
+    return headers;
 }
 
-// Função para buscar um cliente específico pelo ID
-export async function getClienteById(clienteId) {
-    // CORREÇÃO AQUI: Usar template string corretamente
-    const response = await fetch(`${clientesUrl}${clienteId}/`);
-    if (!response.ok) {
-        if (response.status === 404) {
-            throw new Error(`Cliente com ID ${clienteId} não encontrado.`);
-        }
-        throw new Error(`Erro HTTP ao buscar cliente! Status: ${response.status}`);
+// Função para lidar com erros de resposta e possível logout em 401
+async function handleResponseError(response) {
+    if (response.status === 401) {
+        // Se main.js exportar handleLogout e for importada aqui:
+        // handleLogout();
+        // alert("Sua sessão expirou ou você não está autorizado. Por favor, faça login novamente.");
+        // Ou simplesmente lançar o erro para ser tratado onde a função foi chamada
+        // Para simplificar agora, vamos apenas deixar que o erro seja lançado e a UI lide com não receber dados.
+        // A chamada explícita ao handleLogout aqui pode ser um pouco complexa devido a imports circulares ou
+        // necessidade de tornar handleLogout global.
+        console.warn("Erro 401: Não autorizado. O token pode ter expirado.");
     }
-    return await response.json();
-}
+    const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}. Não foi possível obter detalhes do erro.` }));
 
-// Função para criar um novo cliente
-export async function createCliente(clienteData) {
-    const response = await fetch(clientesUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(clienteData),
-    });
-    if (!response.ok) {
-        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}` }));
-        let erroMsg = `Erro ao criar cliente: ${response.status}`;
+    let erroMsg = `${response.status}: ${errData.detail || response.statusText || 'Erro desconhecido'}`;
+    if (errData && typeof errData === 'object' && Object.keys(errData).length > 1) {
         const fieldErrors = [];
         for (const field in errData) {
             if (field !== 'detail') {
@@ -45,52 +42,59 @@ export async function createCliente(clienteData) {
         }
         if (fieldErrors.length > 0) {
             erroMsg += `\nDetalhes:\n${fieldErrors.join('\n')}`;
-        } else if (errData.detail) {
-             erroMsg += `\nDetalhe: ${errData.detail}`;
         }
-        throw new Error(erroMsg);
+    }
+    throw new Error(erroMsg);
+}
+
+
+export async function getClientes() {
+    const response = await fetch(clientesUrl, { headers: getAuthHeaders() });
+    if (!response.ok) {
+        await handleResponseError(response);
     }
     return await response.json();
 }
 
-// Função para atualizar um cliente existente
+export async function getClienteById(clienteId) {
+    const response = await fetch(`${clientesUrl}${clienteId}/`, { headers: getAuthHeaders() });
+    if (!response.ok) {
+       await handleResponseError(response);
+    }
+    return await response.json();
+}
+
+export async function createCliente(clienteData) {
+    const response = await fetch(clientesUrl, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(clienteData),
+    });
+    if (!response.ok) { // Espera-se 201 para POST bem-sucedido, mas DRF retorna 201 (que é .ok)
+        await handleResponseError(response);
+    }
+    return await response.json();
+}
+
 export async function updateCliente(clienteId, clienteData) {
-    // CORREÇÃO AQUI: Usar template string corretamente
     const response = await fetch(`${clientesUrl}${clienteId}/`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(clienteData),
     });
     if (!response.ok) {
-        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}` }));
-        let erroMsg = `Erro ao atualizar cliente: ${response.status}`;
-        const fieldErrors = [];
-        for (const field in errData) {
-             if (field !== 'detail') {
-                fieldErrors.push(`${field}: ${Array.isArray(errData[field]) ? errData[field].join(', ') : errData[field]}`);
-            }
-        }
-        if (fieldErrors.length > 0) {
-            erroMsg += `\nDetalhes:\n${fieldErrors.join('\n')}`;
-        } else if (errData.detail) {
-             erroMsg += `\nDetalhe: ${errData.detail}`;
-        }
-        throw new Error(erroMsg);
+        await handleResponseError(response);
     }
     return await response.json();
 }
 
-// Função para deletar um cliente
 export async function deleteClienteAPI(clienteId) {
-    // CORREÇÃO AQUI: Usar template string corretamente
     const response = await fetch(`${clientesUrl}${clienteId}/`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
     });
-    if (!response.ok && response.status !== 204) {
-        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}` }));
-        throw new Error(`Erro ao deletar cliente: ${response.status} - ${errData.detail || 'Erro desconhecido'}`);
+    if (!response.ok && response.status !== 204) { // 204 é OK para DELETE
+        await handleResponseError(response);
     }
-    return true;
+    return true; // DELETE bem-sucedido (204) não tem corpo JSON
 }

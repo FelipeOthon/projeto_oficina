@@ -49,10 +49,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt', # Adicionado
+    'rest_framework_simplejwt.token_blacklist', # Adicionado (opcional, mas recomendado)
     'corsheaders',
     'gestao_oficina.apps.GestaoOficinaConfig',
 ]
-
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -63,6 +64,18 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    # Se você já tiver outras configurações do REST_FRAMEWORK,
+    # como DEFAULT_PERMISSION_CLASSES, mantenha-as aqui também.
+    # Exemplo:
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.AllowAny', # Ou o que você estiver usando como padrão
+    # ],
+}
 
 ROOT_URLCONF = 'projeto_oficina.urls'
 

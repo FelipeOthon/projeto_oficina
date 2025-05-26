@@ -8,67 +8,110 @@
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
-    <div class="container mt-5">
-        <section id="clientes-section" class="mb-5">
-            <header class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Clientes da Oficina</h1>
-                <button id="btnNovoCliente" class="btn btn-primary">Novo Cliente</button>
-            </header>
-            <main>
-                <h2>Lista de Clientes</h2>
-                <ul id="lista-clientes" class="list-group">
-                    <li class="list-group-item">Carregando clientes...</li>
-                </ul>
-            </main>
-        </section>
-
-        <hr class="my-5">
-
-        <section id="veiculos-section" class="mb-5">
-            <header class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Veículos da Oficina</h1>
-                <button id="btnNovoVeiculo" class="btn btn-success">Novo Veículo</button>
-            </header>
-            <main>
-                <h2>Lista de Veículos</h2>
-                <div class="alert alert-info">A lista de veículos é geral. A seleção de cliente no formulário de veículo define a associação.</div>
-                <ul id="lista-veiculos" class="list-group">
-                    <li class="list-group-item">Carregando veículos...</li>
-                </ul>
-            </main>
-        </section>
-
-        <hr class="my-5">
-
-        <section id="agendamentos-section" class="mb-5">
-            <header class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Agendamentos</h1>
-                <button id="btnNovoAgendamento" class="btn btn-info">Novo Agendamento</button>
-            </header>
-            <main>
-                <h2>Lista de Agendamentos</h2>
-                <ul id="lista-agendamentos" class="list-group">
-                    <li class="list-group-item">Carregando agendamentos...</li>
-                </ul>
-            </main>
-        </section>
-
-        <hr class="my-5">
-
-        <section id="os-section" class="mb-5">
-            <header class="d-flex justify-content-between align-items-center mb-4">
-                <h1>Ordens de Serviço</h1>
-                <button id="btnNovaOS" class="btn btn-warning">Nova Ordem de Serviço</button>
-            </header>
-            <main>
-                <h2>Lista de Ordens de Serviço</h2>
-                <ul id="lista-ordens-servico" class="list-group">
-                    <li class="list-group-item">Carregando Ordens de Serviço...</li>
-                </ul>
-            </main>
-        </section>
+    <div class="container mt-5" id="login-container" style="display:none;">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow-sm">
+                    <div class="card-header text-center">
+                        <h3>OficinaPRO - Login</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="formLogin">
+                            <div class="form-group">
+                                <label for="loginUsername">Usuário</label>
+                                <input type="text" class="form-control" id="loginUsername" required autocomplete="username">
+                            </div>
+                            <div class="form-group">
+                                <label for="loginPassword">Senha</label>
+                                <input type="password" class="form-control" id="loginPassword" required autocomplete="current-password">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+                            <div id="loginError" class="text-danger mt-2 text-center" style="display:none;"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <div id="main-content-wrapper" style="display:none;">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+            <a class="navbar-brand" href="#">OficinaPRO</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
+                    </ul>
+                <span id="userInfo" class="navbar-text mr-3" style="color: white;">
+                    </span>
+                <button id="btnLogout" class="btn btn-outline-danger my-2 my-sm-0">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container mt-3"> {/* Container para o conteúdo principal da página */}
+            <section id="clientes-section" class="mb-5">
+                <header class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Clientes da Oficina</h1>
+                    <button id="btnNovoCliente" class="btn btn-primary">Novo Cliente</button>
+                </header>
+                <main>
+                    <h2>Lista de Clientes</h2>
+                    <ul id="lista-clientes" class="list-group">
+                        <li class="list-group-item">Carregando clientes...</li>
+                    </ul>
+                </main>
+            </section>
+
+            <hr class="my-5">
+
+            <section id="veiculos-section" class="mb-5">
+                <header class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Veículos da Oficina</h1>
+                    <button id="btnNovoVeiculo" class="btn btn-success">Novo Veículo</button>
+                </header>
+                <main>
+                    <h2>Lista de Veículos</h2>
+                    <div class="alert alert-info">A lista de veículos é geral. A seleção de cliente no formulário de veículo define a associação.</div>
+                    <ul id="lista-veiculos" class="list-group">
+                        <li class="list-group-item">Carregando veículos...</li>
+                    </ul>
+                </main>
+            </section>
+
+            <hr class="my-5">
+
+            <section id="agendamentos-section" class="mb-5">
+                <header class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Agendamentos</h1>
+                    <button id="btnNovoAgendamento" class="btn btn-info">Novo Agendamento</button>
+                </header>
+                <main>
+                    <h2>Lista de Agendamentos</h2>
+                    <ul id="lista-agendamentos" class="list-group">
+                        <li class="list-group-item">Carregando agendamentos...</li>
+                    </ul>
+                </main>
+            </section>
+
+            <hr class="my-5">
+
+            <section id="os-section" class="mb-5">
+                <header class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Ordens de Serviço</h1>
+                    <button id="btnNovaOS" class="btn btn-warning">Nova Ordem de Serviço</button>
+                </header>
+                <main>
+                    <h2>Lista de Ordens de Serviço</h2>
+                    <ul id="lista-ordens-servico" class="list-group">
+                        <li class="list-group-item">Carregando Ordens de Serviço...</li>
+                    </ul>
+                </main>
+            </section>
+        </div>
+    </div>
+
+    {/* */}
     <div class="modal fade" id="clienteModal" tabindex="-1" role="dialog" aria-labelledby="clienteModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -473,10 +516,14 @@
             </div>
         </div>
     </div>
+    {/* */}
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    {/* */}
+    {/* */}
 
     <script type="module" src="js/main.js"></script>
 </body>

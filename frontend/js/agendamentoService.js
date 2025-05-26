@@ -1,23 +1,57 @@
 // frontend/js/agendamentoService.js
 import { apiUrlBase } from './apiConfig.js';
+import { handleLogout } from './main.js'; // Importar handleLogout
 
 const agendamentosUrl = `${apiUrlBase}/agendamentos/`;
 
+// Função auxiliar para obter headers de autenticação
+function getAuthHeaders() {
+    const token = localStorage.getItem('access_token');
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+}
+
+// Função para lidar com erros de resposta e possível logout em 401
+async function handleResponseError(response) {
+    if (response.status === 401) {
+        console.warn("Erro 401 em agendamentoService: Não autorizado. Deslogando...");
+        handleLogout();
+    }
+    const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}. Não foi possível obter detalhes do erro do servidor.` }));
+
+    let erroMsg = `${response.status}: ${errData.detail || response.statusText || 'Erro desconhecido ao processar a requisição.'}`;
+
+    if (errData && typeof errData === 'object' && Object.keys(errData).length > 1) {
+        const fieldErrors = [];
+        for (const field in errData) {
+            if (field !== 'detail') {
+                fieldErrors.push(`${field}: ${Array.isArray(errData[field]) ? errData[field].join(', ') : errData[field]}`);
+            }
+        }
+        if (fieldErrors.length > 0) {
+            erroMsg += `\nDetalhes:\n${fieldErrors.join('\n')}`;
+        }
+    }
+    throw new Error(erroMsg);
+}
+
 export async function getAgendamentos() {
-    const response = await fetch(agendamentosUrl);
+    const response = await fetch(agendamentosUrl, { headers: getAuthHeaders() });
     if (!response.ok) {
-        throw new Error(`Erro HTTP ao buscar agendamentos! Status: ${response.status}`);
+        await handleResponseError(response);
     }
     return await response.json();
 }
 
 export async function getAgendamentoById(agendamentoId) {
-    const response = await fetch(`${agendamentosUrl}${agendamentoId}/`); // CORRIGIDO
+    const response = await fetch(`${agendamentosUrl}${agendamentoId}/`, { headers: getAuthHeaders() });
     if (!response.ok) {
-        if (response.status === 404) {
-            throw new Error(`Agendamento com ID ${agendamentoId} não encontrado.`);
-        }
-        throw new Error(`Erro HTTP ao buscar agendamento! Status: ${response.status}`);
+        await handleResponseError(response);
     }
     return await response.json();
 }
@@ -25,50 +59,34 @@ export async function getAgendamentoById(agendamentoId) {
 export async function createAgendamento(agendamentoData) {
     const response = await fetch(agendamentosUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', },
+        headers: getAuthHeaders(),
         body: JSON.stringify(agendamentoData),
     });
     if (!response.ok) {
-        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}` }));
-        let erroMsg = `Erro ao criar agendamento: ${response.status}`;
-        const fieldErrors = [];
-        for (const field in errData) {
-            if (field !== 'detail') { fieldErrors.push(`${field}: ${Array.isArray(errData[field]) ? errData[field].join(', ') : errData[field]}`);}
-        }
-        if (fieldErrors.length > 0) { erroMsg += `\nDetalhes:\n${fieldErrors.join('\n')}`; }
-        else if (errData.detail) { erroMsg += `\nDetalhe: ${errData.detail}`; }
-        throw new Error(erroMsg);
+        await handleResponseError(response);
     }
     return await response.json();
 }
 
 export async function updateAgendamento(agendamentoId, agendamentoData) {
-    const response = await fetch(`${agendamentosUrl}${agendamentoId}/`, { // CORRIGIDO
+    const response = await fetch(`${agendamentosUrl}${agendamentoId}/`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', },
+        headers: getAuthHeaders(),
         body: JSON.stringify(agendamentoData),
     });
     if (!response.ok) {
-        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}` }));
-        let erroMsg = `Erro ao atualizar agendamento: ${response.status}`;
-        const fieldErrors = [];
-        for (const field in errData) {
-             if (field !== 'detail') { fieldErrors.push(`${field}: ${Array.isArray(errData[field]) ? errData[field].join(', ') : errData[field]}`); }
-        }
-        if (fieldErrors.length > 0) { erroMsg += `\nDetalhes:\n${fieldErrors.join('\n')}`; }
-        else if (errData.detail) { erroMsg += `\nDetalhe: ${errData.detail}`; }
-        throw new Error(erroMsg);
+        await handleResponseError(response);
     }
     return await response.json();
 }
 
 export async function deleteAgendamentoAPI(agendamentoId) {
-    const response = await fetch(`${agendamentosUrl}${agendamentoId}/`, { // CORRIGIDO
+    const response = await fetch(`${agendamentosUrl}${agendamentoId}/`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
     });
     if (!response.ok && response.status !== 204) {
-        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}` }));
-        throw new Error(`Erro ao deletar agendamento: ${response.status} - ${errData.detail || 'Erro desconhecido'}`);
+        await handleResponseError(response);
     }
     return true;
 }
