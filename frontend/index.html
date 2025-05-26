@@ -52,6 +52,19 @@
                 </ul>
             </main>
         </section>
+
+        <hr class="my-5"> <section id="os-section" class="mb-5">
+            <header class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Ordens de Serviço</h1>
+                <button id="btnNovaOS" class="btn btn-warning">Nova Ordem de Serviço</button>
+            </header>
+            <main>
+                <h2>Lista de Ordens de Serviço</h2>
+                <ul id="lista-ordens-servico" class="list-group">
+                    <li class="list-group-item">Carregando Ordens de Serviço...</li>
+                </ul>
+            </main>
+        </section>
     </div>
 
     <div class="modal fade" id="clienteModal" tabindex="-1" role="dialog" aria-labelledby="clienteModalLabel" aria-hidden="true">
@@ -140,7 +153,7 @@
                             <label for="veiculoCliente">Cliente*</label>
                             <select class="form-control" id="veiculoCliente" required>
                                 <option value="">Selecione um Cliente...</option>
-                                </select>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label for="veiculoPlaca">Placa*</label>
@@ -202,7 +215,7 @@
                                     <label for="agendamentoCliente">Cliente*</label>
                                     <select class="form-control" id="agendamentoCliente" required>
                                         <option value="">Selecione um Cliente...</option>
-                                        </select>
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -210,7 +223,7 @@
                                     <label for="agendamentoVeiculo">Veículo*</label>
                                     <select class="form-control" id="agendamentoVeiculo" required>
                                         <option value="">Selecione um cliente primeiro...</option>
-                                        </select>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -263,6 +276,97 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-info" id="btnSalvarAgendamento">Salvar Agendamento</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="osModal" tabindex="-1" role="dialog" aria-labelledby="osModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document"> <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="osModalLabel">Adicionar Nova Ordem de Serviço</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formOS">
+                        <input type="hidden" id="osId">
+                        <div class="form-group">
+                            <label for="osNumeroOs">Número da OS*</label>
+                            <input type="text" class="form-control" id="osNumeroOs" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="osCliente">Cliente*</label>
+                                    <select class="form-control" id="osCliente" required>
+                                        <option value="">Selecione um Cliente...</option>
+                                        </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="osVeiculo">Veículo*</label>
+                                    <select class="form-control" id="osVeiculo" required>
+                                        <option value="">Selecione um cliente primeiro...</option>
+                                        </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="osDescricaoProblemaCliente">Descrição do Problema (Cliente)*</label>
+                            <textarea class="form-control" id="osDescricaoProblemaCliente" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="osDataSaidaPrevista">Data de Saída Prevista</label>
+                                    <input type="date" class="form-control" id="osDataSaidaPrevista">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="osStatus">Status*</label>
+                                    <select class="form-control" id="osStatus" required>
+                                        <option value="Aberta" selected>Aberta</option>
+                                        <option value="Em Andamento">Em Andamento</option>
+                                        <option value="Aguardando Pecas">Aguardando Peças</option>
+                                        <option value="Aguardando Aprovacao">Aguardando Aprovação</option>
+                                        <option value="Concluida">Concluída</option>
+                                        <option value="Cancelada">Cancelada</option>
+                                        <option value="Faturada">Faturada</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="osMecanicoResponsavel">Mecânico Responsável (Opcional)</label>
+                            <select class="form-control" id="osMecanicoResponsavel">
+                                <option value="">Selecione um Mecânico...</option>
+                                </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="osDiagnosticoMecanico">Diagnóstico do Mecânico</label>
+                            <textarea class="form-control" id="osDiagnosticoMecanico" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="osServicosExecutadosObs">Observações de Serviços Executados</label>
+                            <textarea class="form-control" id="osServicosExecutadosObs" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="osValorDesconto">Valor do Desconto (R$)</label>
+                            <input type="number" class="form-control" id="osValorDesconto" step="0.01" value="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="osObservacoesInternas">Observações Internas</label>
+                            <textarea class="form-control" id="osObservacoesInternas" rows="2"></textarea>
+                        </div>
+                        </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="btnSalvarOS">Salvar Ordem de Serviço</button>
                 </div>
             </div>
         </div>
