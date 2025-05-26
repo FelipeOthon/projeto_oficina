@@ -3,29 +3,48 @@ import {
     renderClientes, abrirModalNovoCliente, handleSalvarCliente,
     abrirModalEditarCliente, handleDeletarCliente, handleVerDetalhesCliente
 } from './clienteUI.js';
+
 import {
     renderVeiculos, abrirModalNovoVeiculo, handleSalvarVeiculo,
     abrirModalEditarVeiculo, handleDeletarVeiculo, handleVerDetalhesVeiculo
 } from './veiculoUI.js';
+
 import {
     renderAgendamentos, abrirModalNovoAgendamento, handleSalvarAgendamento,
     abrirModalEditarAgendamento, handleDeletarAgendamento, handleVerDetalhesAgendamento,
-    populateVeiculosParaAgendamento as popularVeiculosAgendamento // Renomeando para evitar conflito
+    populateClientesParaAgendamentoDropdown,
+    populateVeiculosParaAgendamentoDropdown
 } from './agendamentoUI.js';
+
 import {
-    renderOrdensDeServico, abrirModalNovaOS, handleSalvarOS,
-    // Importar funções de OS UI quando forem implementadas
-    // abrirModalEditarOS, handleDeletarOS, handleVerDetalhesOS,
-    populateVeiculosParaOS as popularVeiculosOS // Renomeando para evitar conflito e IMPORTANDO
+    renderOrdensDeServico,
+    abrirModalNovaOS,
+    handleSalvarOS,
+    abrirModalEditarOS,
+    handleDeletarOS,
+    handleVerDetalhesOS,
+    populateClientesParaOS,
+    populateVeiculosParaOS,
+    // Funções para gerenciar itens da OS
+    abrirModalAdicionarPeca,
+    handleSalvarItemPeca,
+    abrirModalEditarItemPeca,
+    handleDeletarItemPeca,
+    abrirModalAdicionarServico,
+    handleSalvarItemServico,
+    abrirModalEditarItemServico,
+    handleDeletarItemServico
 } from './ordemDeServicoUI.js';
 
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Carrega as listas iniciais
     renderClientes();
     renderVeiculos();
     renderAgendamentos();
     renderOrdensDeServico();
 
-    // --- Listeners para Clientes (sem alterações) ---
+    // --- Listeners para Clientes ---
     const btnNovoCliente = document.getElementById('btnNovoCliente');
     if (btnNovoCliente) btnNovoCliente.addEventListener('click', abrirModalNovoCliente);
     const btnSalvarCliente = document.getElementById('btnSalvarCliente');
@@ -33,18 +52,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const listaClientesUI = document.getElementById('lista-clientes');
     if (listaClientesUI) {
         listaClientesUI.addEventListener('click', function(event) {
-            const target = event.target.closest('button');
-            if (!target) return;
-            const clienteId = target.dataset.id;
+            const targetButton = event.target.closest('button');
+            if (!targetButton) return;
+            const clienteId = targetButton.dataset.id;
             if (clienteId) {
-                if (target.classList.contains('btn-editar')) abrirModalEditarCliente(clienteId);
-                else if (target.classList.contains('btn-deletar')) handleDeletarCliente(clienteId);
-                else if (target.classList.contains('btn-detalhes')) handleVerDetalhesCliente(clienteId);
+                if (targetButton.classList.contains('btn-editar')) abrirModalEditarCliente(clienteId);
+                else if (targetButton.classList.contains('btn-deletar')) handleDeletarCliente(clienteId);
+                else if (targetButton.classList.contains('btn-detalhes')) handleVerDetalhesCliente(clienteId);
             }
         });
     }
 
-    // --- Listeners para Veículos (sem alterações) ---
+    // --- Listeners para Veículos ---
     const btnNovoVeiculo = document.getElementById('btnNovoVeiculo');
     if (btnNovoVeiculo) btnNovoVeiculo.addEventListener('click', abrirModalNovoVeiculo);
     const btnSalvarVeiculo = document.getElementById('btnSalvarVeiculo');
@@ -52,18 +71,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const listaVeiculosUI = document.getElementById('lista-veiculos');
     if (listaVeiculosUI) {
         listaVeiculosUI.addEventListener('click', function(event) {
-            const target = event.target.closest('button');
-            if (!target) return;
-            const veiculoId = target.dataset.id;
+            const targetButton = event.target.closest('button');
+            if (!targetButton) return;
+            const veiculoId = targetButton.dataset.id;
             if (veiculoId) {
-                if (target.classList.contains('btn-editar-veiculo')) abrirModalEditarVeiculo(veiculoId);
-                else if (target.classList.contains('btn-deletar-veiculo')) handleDeletarVeiculo(veiculoId);
-                else if (target.classList.contains('btn-detalhes-veiculo')) handleVerDetalhesVeiculo(veiculoId);
+                if (targetButton.classList.contains('btn-editar-veiculo')) abrirModalEditarVeiculo(veiculoId);
+                else if (targetButton.classList.contains('btn-deletar-veiculo')) handleDeletarVeiculo(veiculoId);
+                else if (targetButton.classList.contains('btn-detalhes-veiculo')) handleVerDetalhesVeiculo(veiculoId);
             }
         });
     }
 
-    // --- Listeners para Agendamentos (ajustado para usar a função renomeada) ---
+    // --- Listeners para Agendamentos ---
     const btnNovoAgendamento = document.getElementById('btnNovoAgendamento');
     if (btnNovoAgendamento) btnNovoAgendamento.addEventListener('click', abrirModalNovoAgendamento);
     const btnSalvarAgendamento = document.getElementById('btnSalvarAgendamento');
@@ -71,13 +90,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const listaAgendamentosUI = document.getElementById('lista-agendamentos');
     if (listaAgendamentosUI) {
         listaAgendamentosUI.addEventListener('click', function(event) {
-            const target = event.target.closest('button');
-            if (!target) return;
-            const agendamentoId = target.dataset.id;
+            const targetButton = event.target.closest('button');
+            if (!targetButton) return;
+            const agendamentoId = targetButton.dataset.id;
             if (agendamentoId) {
-                if (target.classList.contains('btn-editar-agendamento')) abrirModalEditarAgendamento(agendamentoId);
-                else if (target.classList.contains('btn-deletar-agendamento')) handleDeletarAgendamento(agendamentoId);
-                else if (target.classList.contains('btn-detalhes-agendamento')) handleVerDetalhesAgendamento(agendamentoId);
+                if (targetButton.classList.contains('btn-editar-agendamento')) abrirModalEditarAgendamento(agendamentoId);
+                else if (targetButton.classList.contains('btn-deletar-agendamento')) handleDeletarAgendamento(agendamentoId);
+                else if (targetButton.classList.contains('btn-detalhes-agendamento')) handleVerDetalhesAgendamento(agendamentoId);
             }
         });
     }
@@ -85,31 +104,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (agendamentoClienteSelect) {
         agendamentoClienteSelect.addEventListener('change', function() {
             const clienteId = this.value;
-            console.log('[main.js] Cliente selecionado para AGENDAMENTO, ID:', clienteId);
-            if (clienteId && typeof popularVeiculosAgendamento === 'function') { // Usa a função renomeada
-                popularVeiculosAgendamento(clienteId, null);
-            } else if (clienteId) {
-                console.error("popularVeiculosAgendamento não é uma função ou não foi importada.");
-            } else {
-                const agendamentoVeiculoSelect = document.getElementById('agendamentoVeiculo');
-                if (agendamentoVeiculoSelect) {
-                    agendamentoVeiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro...</option>';
-                }
-            }
+            if (clienteId && typeof populateVeiculosParaAgendamentoDropdown === 'function') {
+                populateVeiculosParaAgendamentoDropdown(clienteId, null);
+            } else { /* ... */ }
         });
     }
 
-    // --- Listeners para Ordens de Serviço (NOVOS e AJUSTADOS) ---
+    // --- Listeners para Ordens de Serviço (Entidade Principal) ---
     const btnNovaOS = document.getElementById('btnNovaOS');
-    if (btnNovaOS) {
-        btnNovaOS.addEventListener('click', abrirModalNovaOS);
-    }
-
+    if (btnNovaOS) btnNovaOS.addEventListener('click', abrirModalNovaOS);
     const btnSalvarOS = document.getElementById('btnSalvarOS');
-    if (btnSalvarOS) {
-        btnSalvarOS.addEventListener('click', handleSalvarOS);
-    }
-
+    if (btnSalvarOS) btnSalvarOS.addEventListener('click', handleSalvarOS);
     const listaOrdensServicoUI = document.getElementById('lista-ordens-servico');
     if (listaOrdensServicoUI) {
         listaOrdensServicoUI.addEventListener('click', function(event) {
@@ -117,37 +122,77 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!target) return;
             const osId = target.dataset.id;
             if (osId) {
-                // if (target.classList.contains('btn-editar-os')) {
-                //     abrirModalEditarOS(osId);
-                // } else if (target.classList.contains('btn-deletar-os')) {
-                //     handleDeletarOS(osId);
-                // } else if (target.classList.contains('btn-detalhes-os')) {
-                //     handleVerDetalhesOS(osId);
-                // }
-                // Alertas temporários, pois as funções de UI ainda são placeholders
-                if (target.classList.contains('btn-editar-os')) alert(`Editar OS ID: ${osId} (a ser implementado)`);
-                else if (target.classList.contains('btn-deletar-os')) alert(`Deletar OS ID: ${osId} (a ser implementado)`);
-                else if (target.classList.contains('btn-detalhes-os')) alert(`Ver Detalhes/Itens da OS ID: ${osId} (a ser implementado)`);
+                if (target.classList.contains('btn-editar-os')) abrirModalEditarOS(osId);
+                else if (target.classList.contains('btn-deletar-os')) handleDeletarOS(osId);
+                else if (target.classList.contains('btn-detalhes-os')) handleVerDetalhesOS(osId);
             }
         });
     }
-
-    // Listener para o select de cliente (#osCliente) no modal de Ordem de Serviço
     const osClienteSelect = document.getElementById('osCliente');
     if (osClienteSelect) {
         osClienteSelect.addEventListener('change', function() {
             const clienteId = this.value;
-            console.log('[main.js] Cliente selecionado para OS, ID:', clienteId);
-            if (clienteId && typeof popularVeiculosOS === 'function') { // Usa a função renomeada e importada
-                popularVeiculosOS(clienteId, null); // Chama a função do ordemDeServicoUI.js
-            } else if (clienteId) {
-                console.error("popularVeiculosOS não é uma função ou não foi importada.");
-            } else {
-                const osVeiculoSelect = document.getElementById('osVeiculo'); // ID do select de veículo no modal de OS
-                if (osVeiculoSelect) {
-                    osVeiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro...</option>';
-                }
+            if (clienteId && typeof populateVeiculosParaOS === 'function') {
+                populateVeiculosParaOS(clienteId, null);
+            } else { /* ... */ }
+        });
+    }
+
+    // --- LISTENERS PARA ITENS DENTRO DO MODAL DE DETALHES DA OS (#osDetalhesItensModal) ---
+    const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
+    if (osDetalhesModalElement) {
+        osDetalhesModalElement.addEventListener('click', function(event) {
+            const targetButton = event.target.closest('button');
+            if (!targetButton) return;
+
+            const osId = targetButton.dataset.osId;
+            const itemId = targetButton.dataset.itemId;
+
+            // Botões para ADICIONAR itens
+            if (targetButton.id === 'btnAbrirModalAdicionarPecaOS') {
+                if (osId && typeof abrirModalAdicionarPeca === 'function') {
+                    abrirModalAdicionarPeca(osId);
+                } else { console.error("ID da OS ou função abrirModalAdicionarPeca não disponível."); }
+            }
+            else if (targetButton.id === 'btnAbrirModalAdicionarServicoOS') {
+                if (osId && typeof abrirModalAdicionarServico === 'function') {
+                    abrirModalAdicionarServico(osId);
+                } else { console.error("ID da OS ou função abrirModalAdicionarServico não disponível."); }
+            }
+            // Botões para EDITAR itens
+            else if (targetButton.classList.contains('btn-editar-item-peca')) {
+                if (osId && itemId && typeof abrirModalEditarItemPeca === 'function') {
+                    abrirModalEditarItemPeca(osId, itemId);
+                } else { console.error("IDs ou função abrirModalEditarItemPeca não disponíveis."); }
+            }
+            else if (targetButton.classList.contains('btn-editar-item-servico')) {
+                if (osId && itemId && typeof abrirModalEditarItemServico === 'function') {
+                    abrirModalEditarItemServico(osId, itemId);
+                } else { console.error("IDs ou função abrirModalEditarItemServico não disponíveis."); }
+            }
+            // Botões para DELETAR itens
+            else if (targetButton.classList.contains('btn-deletar-item-peca')) {
+                 if (osId && itemId && typeof handleDeletarItemPeca === 'function') {
+                    handleDeletarItemPeca(osId, itemId);
+                } else { console.error("IDs ou função handleDeletarItemPeca não disponíveis."); }
+            }
+            else if (targetButton.classList.contains('btn-deletar-item-servico')) {
+                if (osId && itemId && typeof handleDeletarItemServico === 'function') {
+                    handleDeletarItemServico(osId, itemId);
+                } else { console.error("IDs ou função handleDeletarItemServico não disponíveis."); }
             }
         });
+    }
+
+    // Listener para o botão "Salvar Peça"
+    const btnSalvarItemPeca = document.getElementById('btnSalvarItemPeca');
+    if (btnSalvarItemPeca) {
+        btnSalvarItemPeca.addEventListener('click', handleSalvarItemPeca);
+    }
+
+    // Listener para o botão "Salvar Serviço"
+    const btnSalvarItemServico = document.getElementById('btnSalvarItemServico');
+    if (btnSalvarItemServico) {
+        btnSalvarItemServico.addEventListener('click', handleSalvarItemServico);
     }
 });
