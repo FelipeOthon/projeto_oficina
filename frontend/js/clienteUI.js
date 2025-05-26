@@ -3,21 +3,95 @@ import { getClientes, getClienteById, createCliente, updateCliente, deleteClient
 
 const listaClientesUI = document.getElementById('lista-clientes');
 const formCliente = document.getElementById('formCliente');
-const clienteIdInput = document.getElementById('clienteId'); // O input hidden para o ID
+const clienteIdInput = document.getElementById('clienteId');
 const modalLabel = document.getElementById('clienteModalLabel');
 const clienteModal = $('#clienteModal'); // jQuery para o modal Bootstrap
+const btnSalvarClienteModal = document.getElementById('btnSalvarCliente'); // Botão Salvar do modal de cliente
+
+// Função auxiliar para configurar o modo do formulário e modal de Cliente
+function configurarModalCliente(modo, clienteData = null) {
+    formCliente.reset();
+    clienteIdInput.value = clienteData ? clienteData.id : '';
+
+    const camposFormulario = formCliente.elements;
+    let tituloModal = '';
+    let salvarVisivel = true;
+
+    if (modo === 'novo') {
+        tituloModal = 'Adicionar Novo Cliente';
+        for (let campo of camposFormulario) {
+            if (campo.type !== 'hidden' && campo.type !== 'submit' && campo.type !== 'button') {
+                campo.disabled = false;
+            }
+        }
+    } else if (modo === 'editar') {
+        tituloModal = 'Editar Cliente';
+        for (let campo of camposFormulario) {
+            if (campo.type !== 'hidden' && campo.type !== 'submit' && campo.type !== 'button') {
+                campo.disabled = false;
+            }
+        }
+        // Preenche o formulário com dados do cliente para edição
+        if (clienteData) {
+            document.getElementById('nomeCompleto').value = clienteData.nome_completo || '';
+            document.getElementById('telefonePrincipal').value = clienteData.telefone_principal || '';
+            document.getElementById('telefoneSecundario').value = clienteData.telefone_secundario || '';
+            document.getElementById('email').value = clienteData.email || '';
+            document.getElementById('cpfCnpj').value = clienteData.cpf_cnpj || '';
+            document.getElementById('enderecoRua').value = clienteData.endereco_rua || '';
+            document.getElementById('enderecoNumero').value = clienteData.endereco_numero || '';
+            document.getElementById('enderecoComplemento').value = clienteData.endereco_complemento || '';
+            document.getElementById('enderecoBairro').value = clienteData.endereco_bairro || '';
+            document.getElementById('enderecoCidade').value = clienteData.endereco_cidade || '';
+            document.getElementById('enderecoEstado').value = clienteData.endereco_estado || '';
+            document.getElementById('enderecoCep').value = clienteData.endereco_cep || '';
+        }
+    } else if (modo === 'detalhes') {
+        tituloModal = 'Detalhes do Cliente';
+        salvarVisivel = false; // Esconde o botão salvar
+        for (let campo of camposFormulario) {
+            if (campo.type !== 'hidden' && campo.type !== 'submit' && campo.type !== 'button') {
+                campo.disabled = true; // Desabilita campos para visualização
+            }
+        }
+        // Preenche o formulário com dados do cliente para visualização
+        if (clienteData) {
+            document.getElementById('nomeCompleto').value = clienteData.nome_completo || '';
+            document.getElementById('telefonePrincipal').value = clienteData.telefone_principal || '';
+            // ... (preencher todos os outros campos como em 'editar')
+            document.getElementById('telefoneSecundario').value = clienteData.telefone_secundario || '';
+            document.getElementById('email').value = clienteData.email || '';
+            document.getElementById('cpfCnpj').value = clienteData.cpf_cnpj || '';
+            document.getElementById('enderecoRua').value = clienteData.endereco_rua || '';
+            document.getElementById('enderecoNumero').value = clienteData.endereco_numero || '';
+            document.getElementById('enderecoComplemento').value = clienteData.endereco_complemento || '';
+            document.getElementById('enderecoBairro').value = clienteData.endereco_bairro || '';
+            document.getElementById('enderecoCidade').value = clienteData.endereco_cidade || '';
+            document.getElementById('enderecoEstado').value = clienteData.endereco_estado || '';
+            document.getElementById('enderecoCep').value = clienteData.endereco_cep || '';
+        }
+    }
+
+    modalLabel.textContent = tituloModal;
+    // Mostrar ou esconder o botão Salvar
+    if (btnSalvarClienteModal) {
+        btnSalvarClienteModal.style.display = salvarVisivel ? 'inline-block' : 'none';
+    }
+    clienteModal.modal('show');
+}
+
 
 // Função para renderizar a lista de clientes no HTML
 export async function renderClientes() {
+    if (!listaClientesUI) return;
     listaClientesUI.innerHTML = '<li class="list-group-item">Carregando clientes...</li>';
     try {
-        const clientes = await getClientes(); // Chama a função do service
+        const clientes = await getClientes();
         listaClientesUI.innerHTML = '';
         if (Array.isArray(clientes) && clientes.length > 0) {
             clientes.forEach(cliente => {
                 const item = document.createElement('li');
                 item.className = 'list-group-item d-flex justify-content-between align-items-center';
-                // Adicionando data-id e classes específicas para os botões para event delegation
                 item.innerHTML = `
                     <div>
                         <strong>${cliente.nome_completo}</strong><br>
@@ -42,40 +116,36 @@ export async function renderClientes() {
 
 // Função para abrir o modal para um novo cliente
 export function abrirModalNovoCliente() {
-    formCliente.reset();
-    clienteIdInput.value = '';
-    modalLabel.textContent = 'Adicionar Novo Cliente';
-    clienteModal.modal('show');
+    configurarModalCliente('novo');
 }
 
 // Função para abrir o modal para editar um cliente existente
 export async function abrirModalEditarCliente(id) {
-    formCliente.reset();
-    modalLabel.textContent = 'Editar Cliente';
+    console.log('[clienteUI.js] -> abrirModalEditarCliente - ID recebido:', id, '- Tipo:', typeof id);
     try {
-        const cliente = await getClienteById(id); // Chama a função do service
-        clienteIdInput.value = cliente.id;
-        document.getElementById('nomeCompleto').value = cliente.nome_completo || '';
-        document.getElementById('telefonePrincipal').value = cliente.telefone_principal || '';
-        document.getElementById('telefoneSecundario').value = cliente.telefone_secundario || '';
-        document.getElementById('email').value = cliente.email || '';
-        document.getElementById('cpfCnpj').value = cliente.cpf_cnpj || '';
-        document.getElementById('enderecoRua').value = cliente.endereco_rua || '';
-        document.getElementById('enderecoNumero').value = cliente.endereco_numero || '';
-        document.getElementById('enderecoComplemento').value = cliente.endereco_complemento || '';
-        document.getElementById('enderecoBairro').value = cliente.endereco_bairro || '';
-        document.getElementById('enderecoCidade').value = cliente.endereco_cidade || '';
-        document.getElementById('enderecoEstado').value = cliente.endereco_estado || '';
-        document.getElementById('enderecoCep').value = cliente.endereco_cep || '';
-        clienteModal.modal('show');
+        const cliente = await getClienteById(id);
+        configurarModalCliente('editar', cliente);
     } catch (error) {
         console.error('Erro ao carregar cliente para edição:', error);
         alert(`Erro ao carregar dados do cliente: ${error.message}`);
     }
 }
 
+// --- FUNÇÃO HANDLEVERDETALHESCLIENTE IMPLEMENTADA ---
+export async function handleVerDetalhesCliente(id) {
+    console.log('[clienteUI.js] -> handleVerDetalhesCliente - ID recebido:', id, '- Tipo:', typeof id);
+    try {
+        const cliente = await getClienteById(id); // Busca os dados do cliente
+        configurarModalCliente('detalhes', cliente); // Configura e abre o modal em modo 'detalhes'
+    } catch (error) {
+        console.error('Erro ao carregar detalhes do cliente:', error);
+        alert(`Erro ao carregar detalhes do cliente: ${error.message}`);
+    }
+}
+
 // Função para lidar com o submit do formulário (criar ou atualizar)
 export async function handleSalvarCliente() {
+    // ... (código existente da função handleSalvarCliente - não precisa mudar)
     const id = clienteIdInput.value;
     const dadosCliente = {
         nome_completo: document.getElementById('nomeCompleto').value,
@@ -98,15 +168,15 @@ export async function handleSalvarCliente() {
     }
 
     try {
-        if (id) { // Atualizar cliente existente
-            await updateCliente(id, dadosCliente); // Chama a função do service
+        if (id) {
+            await updateCliente(id, dadosCliente);
             alert('Cliente atualizado com sucesso!');
-        } else { // Criar novo cliente
-            await createCliente(dadosCliente); // Chama a função do service
+        } else {
+            await createCliente(dadosCliente);
             alert('Cliente criado com sucesso!');
         }
         clienteModal.modal('hide');
-        renderClientes(); // Re-renderiza a lista de clientes
+        renderClientes();
     } catch (error) {
         console.error('Erro ao salvar cliente:', error);
         alert(`Erro ao salvar cliente: ${error.message}`);
@@ -115,19 +185,16 @@ export async function handleSalvarCliente() {
 
 // Função para lidar com a deleção de um cliente
 export async function handleDeletarCliente(id) {
+    // ... (código existente da função handleDeletarCliente - não precisa mudar)
+    console.log('[clienteUI.js] -> handleDeletarCliente - ID recebido:', id, '- Tipo:', typeof id);
     if (confirm(`Tem certeza que deseja deletar o cliente com ID: ${id}? Esta ação não pode ser desfeita.`)) {
         try {
-            await deleteClienteAPI(id); // Chama a função do service
+            await deleteClienteAPI(id);
             alert('Cliente deletado com sucesso!');
-            renderClientes(); // Re-renderiza a lista de clientes
+            renderClientes();
         } catch (error) {
             console.error('Erro ao deletar cliente:', error);
             alert(`Erro ao deletar cliente: ${error.message}`);
         }
     }
-}
-
-// Placeholder para detalhes (pode ser implementado depois)
-export function handleVerDetalhesCliente(id) {
-    alert(`Ver detalhes do cliente ID: ${id} (a ser implementado)`);
 }

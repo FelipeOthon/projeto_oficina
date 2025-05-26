@@ -5,14 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ddb8d25-419f-4653-b538-52ae18089593" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/dataSources.local.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/dataSources.local.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/agendamentoService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/agendamentoService.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/agendamentoUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/agendamentoUI.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/main.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/veiculoService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/veiculoService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/clienteUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/clienteUI.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/js/veiculoUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/veiculoUI.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/gestao_oficina/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -108,7 +103,7 @@
       <updated>1747928258432</updated>
       <workItem from="1747928259712" duration="7601000" />
       <workItem from="1748003103102" duration="17812000" />
-      <workItem from="1748256562594" duration="4866000" />
+      <workItem from="1748256562594" duration="6452000" />
     </task>
     <servers />
   </component>
