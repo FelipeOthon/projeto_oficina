@@ -50,20 +50,33 @@
         </nav>
 
         <div class="container mt-3">
+            <div class="global-search-controls mb-4 p-3 border rounded bg-light shadow-sm">
+                <h4>Busca Rápida no Sistema</h4>
+                <div class="form-row align-items-end">
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <label for="selectTipoBusca">Buscar em:</label>
+                        <select id="selectTipoBusca" class="form-control">
+                            <option value="clientes" selected>Clientes</option>
+                            <option value="veiculos">Veículos</option>
+                            <option value="agendamentos">Agendamentos</option>
+                            <option value="os">Ordens de Serviço</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-2 mb-md-0">
+                        <label for="inputBuscaGlobal">Termo de Busca:</label>
+                        <input type="text" class="form-control" id="inputBuscaGlobal" placeholder="Buscar cliente por nome, email ou CPF/CNPJ...">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-secondary btn-block" id="btnLimparBuscaGlobal">Limpar</button>
+                    </div>
+                </div>
+            </div>
             <section id="clientes-section" class="mb-5">
                 <header class="d-flex justify-content-between align-items-center mb-4">
                     <h1>Clientes da Oficina</h1>
                     <button id="btnNovoCliente" class="btn btn-primary">Novo Cliente</button>
                 </header>
                 <main>
-                    <div class="form-row mb-3">
-                        <div class="col">
-                            <input type="text" class="form-control" id="inputBuscaCliente" placeholder="Buscar cliente por nome, email ou CPF/CNPJ...">
-                        </div>
-                        <div class="col-auto">
-                            <button class="btn btn-secondary" id="btnLimparBuscaCliente">Limpar</button>
-                        </div>
-                    </div>
                     <h2>Lista de Clientes</h2>
                     <ul id="lista-clientes" class="list-group">
                         <li class="list-group-item">Carregando clientes...</li>

@@ -18,15 +18,13 @@ async function configurarModalVeiculo(modo, veiculoData = null, clienteIdParaNov
     const camposFormulario = formVeiculo.elements;
     let tituloModal = '';
     let salvarVisivel = true;
-    let clientePreSelecionado = null;
+    // let clientePreSelecionado = null; // Removido, pois populateClientesDropdown lida com a seleção
 
     if (modo === 'novo') {
         tituloModal = 'Adicionar Novo Veículo';
         for (let campo of camposFormulario) {
             if (campo.type !== 'hidden' && campo.type !== 'button') campo.disabled = false;
         }
-        // Para 'novo', o clienteIdParaNovo pode ser usado se quisermos pré-selecionar um cliente,
-        // mas geralmente o usuário seleciona. populateClientesDropdown lida com isso.
         await populateClientesDropdown(clienteIdParaNovo);
     } else if (modo === 'editar') {
         tituloModal = 'Editar Veículo';
@@ -50,10 +48,9 @@ async function configurarModalVeiculo(modo, veiculoData = null, clienteIdParaNov
         salvarVisivel = false; // Esconde o botão salvar
         if (veiculoData) {
             await populateClientesDropdown(veiculoData.cliente); // Popula e seleciona o cliente
-            if(veiculoIdInput) veiculoIdInput.value = veiculoData.id; // Embora não seja usado para salvar, pode ser útil
+            if(veiculoIdInput) veiculoIdInput.value = veiculoData.id;
             if(document.getElementById('veiculoPlaca')) document.getElementById('veiculoPlaca').value = veiculoData.placa || '';
             if(document.getElementById('veiculoMarca')) document.getElementById('veiculoMarca').value = veiculoData.marca || '';
-            // ... (preencher todos os outros campos como em 'editar')
             if(document.getElementById('veiculoModelo')) document.getElementById('veiculoModelo').value = veiculoData.modelo || '';
             if(document.getElementById('veiculoAnoFabricacao')) document.getElementById('veiculoAnoFabricacao').value = veiculoData.ano_fabricacao || '';
             if(document.getElementById('veiculoAnoModelo')) document.getElementById('veiculoAnoModelo').value = veiculoData.ano_modelo || '';
@@ -78,14 +75,15 @@ async function configurarModalVeiculo(modo, veiculoData = null, clienteIdParaNov
 async function populateClientesDropdown(selectedClienteId = null) {
     if (!veiculoClienteSelect) return;
     try {
-        const clientes = await getClientes();
+        const clientes = await getClientes(); // Busca todos os clientes (sem filtro aqui)
         veiculoClienteSelect.innerHTML = '<option value="">Selecione um Cliente...</option>';
         if (Array.isArray(clientes) && clientes.length > 0) {
             clientes.forEach(cliente => {
                 const option = document.createElement('option');
                 option.value = cliente.id;
                 option.textContent = cliente.nome_completo;
-                if (selectedClienteId && cliente.id === parseInt(selectedClienteId)) {
+                // Verifica se o ID do cliente corresponde ao ID selecionado (convertido para string para comparação segura)
+                if (selectedClienteId && String(cliente.id) === String(selectedClienteId)) {
                     option.selected = true;
                 }
                 veiculoClienteSelect.appendChild(option);
@@ -97,13 +95,12 @@ async function populateClientesDropdown(selectedClienteId = null) {
     }
 }
 
-// Função para renderizar a lista de veículos no HTML
-export async function renderVeiculos() {
-    // ... (código existente, sem alterações aqui)
+// MODIFICADO para aceitar searchTerm
+export async function renderVeiculos(searchTerm = '') {
     if (!listaVeiculosUI) return;
     listaVeiculosUI.innerHTML = '<li class="list-group-item">Carregando veículos...</li>';
     try {
-        const veiculos = await getVeiculos();
+        const veiculos = await getVeiculos(searchTerm); // Passa o searchTerm para getVeiculos
         listaVeiculosUI.innerHTML = '';
         if (Array.isArray(veiculos) && veiculos.length > 0) {
             veiculos.forEach(veiculo => {
@@ -123,7 +120,11 @@ export async function renderVeiculos() {
                 listaVeiculosUI.appendChild(item);
             });
         } else {
-            listaVeiculosUI.innerHTML = '<li class="list-group-item">Nenhum veículo encontrado.</li>';
+            if (searchTerm) {
+                listaVeiculosUI.innerHTML = `<li class="list-group-item">Nenhum veículo encontrado para "${searchTerm}".</li>`;
+            } else {
+                listaVeiculosUI.innerHTML = '<li class="list-group-item">Nenhum veículo cadastrado.</li>';
+            }
         }
     } catch (error) {
         console.error('Erro ao renderizar veículos:', error);
@@ -148,27 +149,23 @@ export async function abrirModalEditarVeiculo(id) {
     }
 }
 
-// --- FUNÇÃO HANDLEVERDETALHESVEICULO IMPLEMENTADA ---
 export async function handleVerDetalhesVeiculo(id) {
     console.log('[veiculoUI.js] -> handleVerDetalhesVeiculo - ID recebido:', id, '- Tipo:', typeof id);
     try {
-        const veiculo = await getVeiculoById(id); // Busca os dados do veículo
-        await configurarModalVeiculo('detalhes', veiculo); // Configura e abre o modal em modo 'detalhes'
+        const veiculo = await getVeiculoById(id);
+        await configurarModalVeiculo('detalhes', veiculo);
     } catch (error) {
         console.error('Erro ao carregar detalhes do veículo:', error);
         alert(`Erro ao carregar detalhes do veículo: ${error.message}`);
     }
 }
 
-
-// Função para lidar com o submit do formulário de veículo (criar ou atualizar)
 export async function handleSalvarVeiculo() {
-    // ... (código existente, sem alterações aqui)
     if (!formVeiculo || !veiculoIdInput) return;
     const id = veiculoIdInput.value;
     const dadosVeiculo = {
         cliente: document.getElementById('veiculoCliente')?.value,
-        placa: document.getElementById('veiculoPlaca')?.value,
+        placa: document.getElementById('veiculoPlaca')?.value.toUpperCase(), // Placa em maiúsculas
         marca: document.getElementById('veiculoMarca')?.value,
         modelo: document.getElementById('veiculoModelo')?.value,
         ano_fabricacao: document.getElementById('veiculoAnoFabricacao')?.value || null,
@@ -190,30 +187,32 @@ export async function handleSalvarVeiculo() {
     dadosVeiculo.ano_modelo = !isNaN(anoMod) ? anoMod : null;
 
     try {
+        let veiculoSalvo;
         if (id) {
-            await updateVeiculo(id, dadosVeiculo);
+            veiculoSalvo = await updateVeiculo(id, dadosVeiculo);
             alert('Veículo atualizado com sucesso!');
         } else {
-            await createVeiculo(dadosVeiculo);
+            veiculoSalvo = await createVeiculo(dadosVeiculo);
             alert('Veículo criado com sucesso!');
         }
         if(veiculoModal.length) veiculoModal.modal('hide');
-        renderVeiculos();
+        // Ao salvar, renderiza a lista com o termo de busca atual do input global (se ele existir e estivermos usando)
+        // Por enquanto, vamos assumir que ele deve recarregar a lista completa.
+        // A lógica de qual termo usar será gerenciada pelo main.js com o novo filtro global.
+        renderVeiculos(); // Ou renderVeiculos(termoDoFiltroGlobalAtual) se já implementado
     } catch (error) {
         console.error('Erro ao salvar veículo:', error);
         alert(`Erro ao salvar veículo: ${error.message}`);
     }
 }
 
-// Função para lidar com a deleção de um veículo
 export async function handleDeletarVeiculo(id) {
-    // ... (código existente, com console.log)
     console.log('[veiculoUI.js] -> handleDeletarVeiculo - ID recebido:', id, '- Tipo:', typeof id);
     if (confirm(`Tem certeza que deseja deletar o veículo com ID: ${id}? Esta ação não pode ser desfeita.`)) {
         try {
             await deleteVeiculoAPI(id);
             alert('Veículo deletado com sucesso!');
-            renderVeiculos();
+            renderVeiculos(); // Ou renderVeiculos(termoDoFiltroGlobalAtual)
         } catch (error) {
             console.error('Erro ao deletar veículo:', error);
             alert(`Erro ao deletar veículo: ${error.message}`);

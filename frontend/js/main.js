@@ -39,7 +39,20 @@ const mainContentWrapper = document.getElementById('main-content-wrapper');
 const formLogin = document.getElementById('formLogin');
 const btnLogout = document.getElementById('btnLogout');
 const loginErrorDiv = document.getElementById('loginError');
-const userInfoSpan = document.getElementById('userInfo'); // Para exibir nome do usuário, por exemplo
+const userInfoSpan = document.getElementById('userInfo');
+
+// --- Elementos para Busca Global --- MODIFICADO/ADICIONADO
+const selectTipoBusca = document.getElementById('selectTipoBusca');
+const inputBuscaGlobal = document.getElementById('inputBuscaGlobal');
+const btnLimparBuscaGlobal = document.getElementById('btnLimparBuscaGlobal');
+let debounceTimerGlobal;
+
+const placeholdersBusca = {
+    clientes: "Buscar cliente por nome, email, CPF/CNPJ ou telefone...",
+    veiculos: "Buscar veículo por placa, marca, modelo, chassi ou nome do cliente...",
+    agendamentos: "Buscar agendamento por cliente, veículo, serviço, status ou mecânico...",
+    os: "Buscar OS por número, cliente, veículo, status, problema, diagnóstico ou mecânico..."
+};
 
 // --- Funções de Autenticação ---
 async function handleLogin(event) {
@@ -52,7 +65,7 @@ async function handleLogin(event) {
     if (loginErrorDiv) loginErrorDiv.style.display = 'none';
 
     try {
-        const response = await fetch(`${apiUrlBase}/token/`, { // Endpoint para obter token
+        const response = await fetch(`${apiUrlBase}/token/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, password }),
@@ -62,47 +75,33 @@ async function handleLogin(event) {
         if (response.ok) {
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
-
-            // Opcional: Decodificar token para obter nome de usuário se o backend o incluir no payload
-            // try {
-            //     const decodedToken = jwt_decode(data.access); // Necessita da lib jwt-decode
-            //     if (userInfoSpan && decodedToken.username) { // Supondo que 'username' está no payload
-            //         userInfoSpan.textContent = `Usuário: ${decodedToken.username}`;
-            //     }
-            // } catch (e) { console.error("Erro ao decodificar token:", e); }
-
-
             if(usernameInput) usernameInput.value = '';
             if(passwordInput) passwordInput.value = '';
-
-            await setupApplicationAfterLogin(); // Configura UI e carrega dados
+            await setupApplicationAfterLogin();
         } else {
+            const errorMessage = data.detail || 'Usuário ou senha inválidos.';
             if (loginErrorDiv) {
-                loginErrorDiv.textContent = data.detail || 'Usuário ou senha inválidos.';
+                loginErrorDiv.textContent = errorMessage;
                 loginErrorDiv.style.display = 'block';
             } else {
-                alert(data.detail || 'Usuário ou senha inválidos.');
+                alert(errorMessage);
             }
         }
     } catch (error) {
         console.error('Erro no login:', error);
+        const connErrorMessage = 'Erro de conexão ao tentar fazer login.';
         if (loginErrorDiv) {
-            loginErrorDiv.textContent = 'Erro de conexão ao tentar fazer login.';
+            loginErrorDiv.textContent = connErrorMessage;
             loginErrorDiv.style.display = 'block';
         } else {
-            alert('Erro de conexão ao tentar fazer login.');
+            alert(connErrorMessage);
         }
     }
 }
 
-export function handleLogout() { // Exportada para ser chamada globalmente se necessário
-    // Lógica de blacklist do token de refresh no backend (opcional, mas recomendado)
-    // const refreshToken = localStorage.getItem('refresh_token');
-    // if (refreshToken) { /* ... chamada à API de blacklist ... */ }
-
+export function handleLogout() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
-    // localStorage.removeItem('username'); // Se estiver guardando username
     if (userInfoSpan) userInfoSpan.textContent = '';
     showLoginScreen();
 }
@@ -115,194 +114,240 @@ function showMainScreen() {
 function showLoginScreen() {
     if (loginContainer) loginContainer.style.display = 'block';
     if (mainContentWrapper) mainContentWrapper.style.display = 'none';
+    if(inputBuscaGlobal) inputBuscaGlobal.value = ''; // Limpa busca global ao deslogar
 }
 
-async function loadInitialData() {
-    // Só chama as funções de renderização se o token existir e for válido (implicitamente)
-    // As próprias funções de service agora devem lidar com 401 e talvez chamar handleLogout
+async function loadInitialData(tipo = 'clientes', searchTerm = '') { // MODIFICADO
     try {
-        await Promise.all([ // Carrega em paralelo, se possível e desejável
-            renderClientes(),
-            renderVeiculos(),
-            renderAgendamentos(),
-            renderOrdensDeServico()
-        ]);
+        // Por padrão, carrega clientes sem filtro, mas permite carregar outros tipos
+        // A busca global irá controlar qual função de render chamar com searchTerm
+        switch (tipo) {
+            case 'clientes':
+                await renderClientes(searchTerm);
+                break;
+            case 'veiculos':
+                await renderVeiculos(searchTerm);
+                break;
+            case 'agendamentos':
+                await renderAgendamentos(searchTerm);
+                break;
+            case 'os':
+                await renderOrdensDeServico(searchTerm);
+                break;
+            default:
+                await renderClientes(); // Fallback
+        }
+        // Se quiser carregar todas as listas de uma vez (sem filtro) ao iniciar, pode manter o Promise.all
+        // Mas com a busca global, geralmente carregamos uma por vez ou sob demanda.
+        // Se quiser carregar todas as listas na inicialização, faça-o aqui:
+        if (!searchTerm) { // Só carrega tudo se não for uma busca específica
+             await Promise.all([
+                 renderClientes(), // Já chamado ou será chamado pelo switch
+                 renderVeiculos(),
+                 renderAgendamentos(),
+                 renderOrdensDeServico()
+             ]);
+        }
+
     } catch (error) {
-        console.error("Erro ao carregar dados iniciais:", error);
-        // Se um erro 401 ocorrer aqui dentro das funções de render/service,
-        // a função handleResponseError (que você adicionará aos services)
-        // deve idealmente já ter acionado o handleLogout ou preparado para isso.
+        console.error("Erro ao carregar dados:", error);
     }
 }
 
-function setupCommonEventListeners() {
-    // Estes são os listeners que não dependem de listas dinâmicas,
-    // ou que podem ser configurados uma vez.
-    // Listeners para botões "Novo *" e "Salvar *" nos modais.
+// --- Lógica para Busca Global --- ADICIONADO
+function atualizarPlaceholderBuscaGlobal() {
+    if (selectTipoBusca && inputBuscaGlobal) {
+        const tipoSelecionado = selectTipoBusca.value;
+        inputBuscaGlobal.placeholder = placeholdersBusca[tipoSelecionado] || "Digite para buscar...";
+    }
+}
 
-    // --- Listeners para Clientes ---
+async function executarBuscaGlobal() {
+    if (!selectTipoBusca || !inputBuscaGlobal) return;
+    const tipo = selectTipoBusca.value;
+    const termo = inputBuscaGlobal.value.trim();
+
+    console.log(`Buscando em '${tipo}' por '${termo}'`);
+
+    // Mostra "carregando" na lista apropriada
+    const listaUI = document.getElementById(`lista-${tipo}`); // Ex: lista-clientes, lista-veiculos
+    if (listaUI) {
+        listaUI.innerHTML = `<li class="list-group-item">Buscando ${tipo}...</li>`;
+    } else {
+        console.warn(`Elemento de lista para '${tipo}' não encontrado.`);
+    }
+
+
+    switch (tipo) {
+        case 'clientes':
+            await renderClientes(termo);
+            break;
+        case 'veiculos':
+            await renderVeiculos(termo);
+            break;
+        case 'agendamentos':
+            await renderAgendamentos(termo);
+            break;
+        case 'os':
+            await renderOrdensDeServico(termo);
+            break;
+        default:
+            console.warn("Tipo de busca desconhecido:", tipo);
+    }
+}
+
+function limparBuscaGlobalEAtualizar() {
+    if (!selectTipoBusca || !inputBuscaGlobal) return;
+    inputBuscaGlobal.value = '';
+    const tipo = selectTipoBusca.value;
+    switch (tipo) { // Renderiza a lista completa da seção atual
+        case 'clientes':
+            renderClientes();
+            break;
+        case 'veiculos':
+            renderVeiculos();
+            break;
+        case 'agendamentos':
+            renderAgendamentos();
+            break;
+        case 'os':
+            renderOrdensDeServico();
+            break;
+    }
+}
+
+function setupBuscaGlobalListeners() {
+    if (selectTipoBusca) {
+        selectTipoBusca.addEventListener('change', () => {
+            atualizarPlaceholderBuscaGlobal();
+            if(inputBuscaGlobal) inputBuscaGlobal.value = ''; // Limpa o campo de busca ao mudar o tipo
+            executarBuscaGlobal(); // Carrega a lista do novo tipo selecionado (sem termo de busca)
+            if(inputBuscaGlobal) inputBuscaGlobal.focus();
+        });
+    }
+    if (inputBuscaGlobal) {
+        inputBuscaGlobal.addEventListener('keyup', () => {
+            clearTimeout(debounceTimerGlobal);
+            debounceTimerGlobal = setTimeout(executarBuscaGlobal, 500);
+        });
+    }
+    if (btnLimparBuscaGlobal) {
+        btnLimparBuscaGlobal.addEventListener('click', limparBuscaGlobalEAtualizar);
+    }
+}
+// --- FIM Lógica para Busca Global ---
+
+
+function setupCommonEventListeners() {
+    // Listeners para botões "Novo *" e "Salvar *" nos modais.
     const btnNovoCliente = document.getElementById('btnNovoCliente');
     if (btnNovoCliente) btnNovoCliente.addEventListener('click', abrirModalNovoCliente);
     const btnSalvarCliente = document.getElementById('btnSalvarCliente');
     if (btnSalvarCliente) btnSalvarCliente.addEventListener('click', handleSalvarCliente);
 
-    // --- Listeners para Veículos ---
     const btnNovoVeiculo = document.getElementById('btnNovoVeiculo');
     if (btnNovoVeiculo) btnNovoVeiculo.addEventListener('click', abrirModalNovoVeiculo);
     const btnSalvarVeiculo = document.getElementById('btnSalvarVeiculo');
     if (btnSalvarVeiculo) btnSalvarVeiculo.addEventListener('click', handleSalvarVeiculo);
 
-    // --- Listeners para Agendamentos ---
     const btnNovoAgendamento = document.getElementById('btnNovoAgendamento');
     if (btnNovoAgendamento) btnNovoAgendamento.addEventListener('click', abrirModalNovoAgendamento);
     const btnSalvarAgendamento = document.getElementById('btnSalvarAgendamento');
     if (btnSalvarAgendamento) btnSalvarAgendamento.addEventListener('click', handleSalvarAgendamento);
+
     const agendamentoClienteSelect = document.getElementById('agendamentoCliente');
     if (agendamentoClienteSelect) {
         agendamentoClienteSelect.addEventListener('change', function() {
             const clienteId = this.value;
-            if (clienteId && typeof populateVeiculosParaAgendamentoDropdown === 'function') {
-                populateVeiculosParaAgendamentoDropdown(clienteId, null);
-            }
+            populateVeiculosParaAgendamentoDropdown(clienteId, null);
         });
     }
 
-    // --- Listeners para Ordens de Serviço (Entidade Principal) ---
     const btnNovaOS = document.getElementById('btnNovaOS');
     if (btnNovaOS) btnNovaOS.addEventListener('click', abrirModalNovaOS);
     const btnSalvarOS = document.getElementById('btnSalvarOS');
     if (btnSalvarOS) btnSalvarOS.addEventListener('click', handleSalvarOS);
+
     const osClienteSelect = document.getElementById('osCliente');
     if (osClienteSelect) {
         osClienteSelect.addEventListener('change', function() {
             const clienteId = this.value;
-            if (clienteId && typeof populateVeiculosParaOS === 'function') {
-                populateVeiculosParaOS(clienteId, null);
-            }
+            populateVeiculosParaOS(clienteId, null);
         });
     }
 
-    // --- Listeners para Salvar Itens de OS ---
     const btnSalvarItemPeca = document.getElementById('btnSalvarItemPeca');
     if (btnSalvarItemPeca) btnSalvarItemPeca.addEventListener('click', handleSalvarItemPeca);
     const btnSalvarItemServico = document.getElementById('btnSalvarItemServico');
     if (btnSalvarItemServico) btnSalvarItemServico.addEventListener('click', handleSalvarItemServico);
 
-    // Listeners para as listas dinâmicas (delegação de eventos)
-    // Estes são os que precisam ser configurados APÓS as listas serem populadas,
-    // ou usar delegação de evento no contêiner pai (mainContentWrapper ou document.body)
-    // Por simplicidade, vamos re-adicionar se necessário, ou mover para uma função chamada após cada render.
-    // A estrutura atual do seu código já os adiciona uma vez, e a delegação acontece no elemento da lista.
-    // Isso deve funcionar bem, desde que os elementos da lista sejam recriados com os mesmos IDs.
-    const listaClientesUI = document.getElementById('lista-clientes');
-    if (listaClientesUI) {
-        listaClientesUI.addEventListener('click', function(event) {
+    // Delegação de eventos para listas dinâmicas
+    const mainContainer = document.getElementById('main-content-wrapper'); // Ou um container mais específico se preferir
+    if (mainContainer) {
+        mainContainer.addEventListener('click', function(event) {
             const targetButton = event.target.closest('button');
             if (!targetButton) return;
-            const clienteId = targetButton.dataset.id;
-            if (clienteId) {
-                if (targetButton.classList.contains('btn-editar')) abrirModalEditarCliente(clienteId);
-                else if (targetButton.classList.contains('btn-deletar')) handleDeletarCliente(clienteId);
-                else if (targetButton.classList.contains('btn-detalhes')) handleVerDetalhesCliente(clienteId);
-            }
-        });
-    }
 
-    const listaVeiculosUI = document.getElementById('lista-veiculos');
-    if (listaVeiculosUI) {
-        listaVeiculosUI.addEventListener('click', function(event) {
-            // ... (lógica de eventos para veículos) ...
-             const targetButton = event.target.closest('button');
-            if (!targetButton) return;
-            const veiculoId = targetButton.dataset.id;
-            if (veiculoId) {
-                if (targetButton.classList.contains('btn-editar-veiculo')) abrirModalEditarVeiculo(veiculoId);
-                else if (targetButton.classList.contains('btn-deletar-veiculo')) handleDeletarVeiculo(veiculoId);
-                else if (targetButton.classList.contains('btn-detalhes-veiculo')) handleVerDetalhesVeiculo(veiculoId);
+            const id = targetButton.dataset.id;
+            // Cliente
+            if (id && targetButton.classList.contains('btn-editar')) abrirModalEditarCliente(id);
+            else if (id && targetButton.classList.contains('btn-deletar')) handleDeletarCliente(id);
+            else if (id && targetButton.classList.contains('btn-detalhes')) handleVerDetalhesCliente(id);
+            // Veículo
+            else if (id && targetButton.classList.contains('btn-editar-veiculo')) abrirModalEditarVeiculo(id);
+            else if (id && targetButton.classList.contains('btn-deletar-veiculo')) handleDeletarVeiculo(id);
+            else if (id && targetButton.classList.contains('btn-detalhes-veiculo')) handleVerDetalhesVeiculo(id);
+            // Agendamento
+            else if (id && targetButton.classList.contains('btn-editar-agendamento')) abrirModalEditarAgendamento(id);
+            else if (id && targetButton.classList.contains('btn-deletar-agendamento')) handleDeletarAgendamento(id);
+            else if (id && targetButton.classList.contains('btn-detalhes-agendamento')) handleVerDetalhesAgendamento(id);
+            // OS
+            else if (id && targetButton.classList.contains('btn-editar-os')) abrirModalEditarOS(id);
+            else if (id && targetButton.classList.contains('btn-deletar-os')) handleDeletarOS(id);
+            else if (id && targetButton.classList.contains('btn-detalhes-os')) {
+                const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
+                if(osDetalhesModalElement) osDetalhesModalElement.dataset.currentOsId = id;
+                handleVerDetalhesOS(id);
             }
-        });
-    }
 
-    const listaAgendamentosUI = document.getElementById('lista-agendamentos');
-    if (listaAgendamentosUI) {
-        listaAgendamentosUI.addEventListener('click', function(event) {
-            // ... (lógica de eventos para agendamentos) ...
-            const targetButton = event.target.closest('button');
-            if (!targetButton) return;
-            const agendamentoId = targetButton.dataset.id;
-            if (agendamentoId) {
-                if (targetButton.classList.contains('btn-editar-agendamento')) abrirModalEditarAgendamento(agendamentoId);
-                else if (targetButton.classList.contains('btn-deletar-agendamento')) handleDeletarAgendamento(agendamentoId);
-                else if (targetButton.classList.contains('btn-detalhes-agendamento')) handleVerDetalhesAgendamento(agendamentoId);
-            }
-        });
-    }
+            // Eventos dentro do Modal de Detalhes da OS
+            const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
+            if (osDetalhesModalElement && osDetalhesModalElement.contains(targetButton)) {
+                const osIdContext = osDetalhesModalElement.dataset.currentOsId;
+                const itemId = targetButton.dataset.itemId; // Pode ser undefined se não for um botão de item
 
-    const listaOrdensServicoUI = document.getElementById('lista-ordens-servico');
-    if (listaOrdensServicoUI) {
-        listaOrdensServicoUI.addEventListener('click', function(event) {
-            // ... (lógica de eventos para OS) ...
-            const target = event.target.closest('button');
-            if (!target) return;
-            const osId = target.dataset.id;
-            if (osId) {
-                if (target.classList.contains('btn-editar-os')) abrirModalEditarOS(osId);
-                else if (target.classList.contains('btn-deletar-os')) handleDeletarOS(osId);
-                else if (target.classList.contains('btn-detalhes-os')) {
-                    // Armazena o ID da OS no próprio elemento do modal de detalhes
-                    // para que os botões "Adicionar Peça/Serviço" possam acessá-lo
-                    const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
-                    if(osDetalhesModalElement) osDetalhesModalElement.dataset.currentOsId = osId;
-                    handleVerDetalhesOS(osId);
+                if (targetButton.id === 'btnAbrirModalAdicionarPecaOS') {
+                    if (osIdContext) abrirModalAdicionarPeca(osIdContext);
+                } else if (targetButton.id === 'btnAbrirModalAdicionarServicoOS') {
+                    if (osIdContext) abrirModalAdicionarServico(osIdContext);
+                } else if (itemId) { // Ações que dependem de um itemId
+                    const osIdFromButton = targetButton.dataset.osId; // Os botões de item têm data-os-id
+                    if (targetButton.classList.contains('btn-editar-item-peca')) abrirModalEditarItemPeca(osIdFromButton, itemId);
+                    else if (targetButton.classList.contains('btn-editar-item-servico')) abrirModalEditarItemServico(osIdFromButton, itemId);
+                    else if (targetButton.classList.contains('btn-deletar-item-peca')) handleDeletarItemPeca(osIdFromButton, itemId);
+                    else if (targetButton.classList.contains('btn-deletar-item-servico')) handleDeletarItemServico(osIdFromButton, itemId);
                 }
-            }
-        });
-    }
-
-    const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
-    if (osDetalhesModalElement) {
-        osDetalhesModalElement.addEventListener('click', function(event) {
-            // ... (lógica de eventos dentro do modal de detalhes da OS) ...
-            const targetButton = event.target.closest('button');
-            if (!targetButton) return;
-
-            // Usa o ID da OS armazenado no próprio modal
-            const osId = osDetalhesModalElement.dataset.currentOsId;
-            const itemId = targetButton.dataset.itemId;
-
-            if (targetButton.id === 'btnAbrirModalAdicionarPecaOS') {
-                if (osId && typeof abrirModalAdicionarPeca === 'function') abrirModalAdicionarPeca(osId);
-                else console.error("ID da OS para adicionar peça não disponível (modal).");
-            }
-            else if (targetButton.id === 'btnAbrirModalAdicionarServicoOS') {
-                if (osId && typeof abrirModalAdicionarServico === 'function') abrirModalAdicionarServico(osId);
-                else console.error("ID da OS para adicionar serviço não disponível (modal).");
-            }
-            // As demais condições para editar/deletar itens devem pegar osId e itemId dos data attributes dos próprios botões
-            else if (targetButton.classList.contains('btn-editar-item-peca')) {
-                const btnOsId = targetButton.dataset.osId; // Pega dos botões específicos
-                if (btnOsId && itemId && typeof abrirModalEditarItemPeca === 'function') abrirModalEditarItemPeca(btnOsId, itemId);
-            }
-            else if (targetButton.classList.contains('btn-editar-item-servico')) {
-                 const btnOsId = targetButton.dataset.osId;
-                if (btnOsId && itemId && typeof abrirModalEditarItemServico === 'function') abrirModalEditarItemServico(btnOsId, itemId);
-            }
-            else if (targetButton.classList.contains('btn-deletar-item-peca')) {
-                const btnOsId = targetButton.dataset.osId;
-                if (btnOsId && itemId && typeof handleDeletarItemPeca === 'function') handleDeletarItemPeca(btnOsId, itemId);
-            }
-            else if (targetButton.classList.contains('btn-deletar-item-servico')) {
-                const btnOsId = targetButton.dataset.osId;
-                if (btnOsId && itemId && typeof handleDeletarItemServico === 'function') handleDeletarItemServico(btnOsId, itemId);
             }
         });
     }
 }
 
+
 async function setupApplicationAfterLogin() {
     showMainScreen();
-    await loadInitialData();
-    setupCommonEventListeners(); // Configura os event listeners após o conteúdo estar visível
+    // Carrega a lista inicial (Clientes por padrão) e atualiza o placeholder
+    atualizarPlaceholderBuscaGlobal(); // Define o placeholder inicial
+    await loadInitialData('clientes'); // Carrega clientes inicialmente
+
+    // Carrega as outras listas em segundo plano para que as seções não fiquem vazias ao mudar o tipo de busca
+    // antes de uma busca ser efetivamente realizada para aquele tipo.
+    // Isso é opcional, mas melhora a UX.
+    renderVeiculos();
+    renderAgendamentos();
+    renderOrdensDeServico();
+
+    setupCommonEventListeners();
+    setupBuscaGlobalListeners(); // Configura os listeners da busca global
 }
 
 // --- Inicialização da Aplicação ---
@@ -312,17 +357,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const token = localStorage.getItem('access_token');
     if (token) {
-        // Opcional: Adicionar verificação de token aqui com /api/token/verify/
-        // Se o token for válido, carrega o conteúdo principal.
-        // Por agora, vamos assumir que se existe, é válido para simplificar.
         console.log("Token encontrado, carregando app...");
         await setupApplicationAfterLogin();
     } else {
         console.log("Nenhum token encontrado, mostrando login...");
         showLoginScreen();
-        // Não configurar outros event listeners se não estiver logado
     }
 });
 
-// Se precisar que handleLogout seja acessível de outros módulos que não podem importá-lo diretamente:
-// window.appGlobal = { handleLogout };
+// Exportar handleLogout para que possa ser chamado por outros módulos em caso de erro 401.
+// window.appGlobal = { handleLogout }; // Uma forma, mas a importação direta é melhor.

@@ -25,15 +25,15 @@ from django.shortcuts import get_object_or_404
 
 # IMPORTAR SearchFilter
 from rest_framework.filters import SearchFilter
+# from django_filters.rest_framework import DjangoFilterBackend # Se for usar filtros mais complexos por campo
 
 
 # --- VIEWS DE CLIENTE ---
 class ClienteListCreateAPIView(generics.ListCreateAPIView):
     queryset = Cliente.objects.all().order_by('nome_completo')
     serializer_class = ClienteSerializer
-    # CONFIGURAR FILTROS
     filter_backends = [SearchFilter]
-    search_fields = ['nome_completo', 'email', 'cpf_cnpj']  # Campos onde a busca será aplicada
+    search_fields = ['nome_completo', 'email', 'cpf_cnpj', 'telefone_principal'] # Adicionado telefone_principal para busca
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -52,10 +52,10 @@ class ClienteRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView)
 class VeiculoListCreateAPIView(generics.ListCreateAPIView):
     queryset = Veiculo.objects.select_related('cliente').all().order_by('marca', 'modelo')
     serializer_class = VeiculoSerializer
+    # ATIVANDO FILTRO DE BUSCA PARA VEÍCULOS
+    filter_backends = [SearchFilter]
+    search_fields = ['placa', 'marca', 'modelo', 'cliente__nome_completo', 'chassi'] # Campos para busca em Veículos
 
-    # Se quisermos adicionar filtro de busca para veículos no futuro, faremos aqui.
-    # filter_backends = [SearchFilter]
-    # search_fields = ['placa', 'marca', 'modelo', 'cliente__nome_completo']
     def get_permissions(self):
         if self.request.method == 'POST':
             return [IsAdminUser()]
@@ -92,9 +92,19 @@ class AgendamentoListCreateAPIView(generics.ListCreateAPIView):
         'data_agendamento', 'hora_agendamento')
     serializer_class = AgendamentoSerializer
     permission_classes = [IsAdminOrMecanico]
-    # Se quisermos adicionar filtro de busca para agendamentos:
-    # filter_backends = [SearchFilter]
-    # search_fields = ['cliente__nome_completo', 'veiculo__placa', 'servico_solicitado', 'status_agendamento']
+    # ATIVANDO FILTRO DE BUSCA PARA AGENDAMENTOS
+    filter_backends = [SearchFilter]
+    search_fields = [
+        'cliente__nome_completo',       # Nome do cliente
+        'veiculo__placa',               # Placa do veículo
+        'veiculo__marca',               # Marca do veículo
+        'veiculo__modelo',              # Modelo do veículo
+        'servico_solicitado',           # Descrição do serviço
+        'status_agendamento',           # Status do agendamento
+        'mecanico_atribuido__username', # Username do mecânico
+        'mecanico_atribuido__first_name', # Primeiro nome do mecânico
+        'mecanico_atribuido__last_name'   # Sobrenome do mecânico
+    ]
 
 
 class AgendamentoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -117,9 +127,21 @@ class OrdemDeServicoListCreateAPIView(generics.ListCreateAPIView):
     ).all().order_by('-data_entrada')
     serializer_class = OrdemDeServicoSerializer
     permission_classes = [IsAdminOrMecanico]
-    # Se quisermos adicionar filtro de busca para OS:
-    # filter_backends = [SearchFilter]
-    # search_fields = ['numero_os', 'cliente__nome_completo', 'veiculo__placa', 'status_os']
+    # ATIVANDO FILTRO DE BUSCA PARA ORDENS DE SERVIÇO
+    filter_backends = [SearchFilter]
+    search_fields = [
+        'numero_os',                    # Número da OS
+        'cliente__nome_completo',       # Nome do cliente
+        'veiculo__placa',               # Placa do veículo
+        'veiculo__marca',               # Marca do veículo
+        'veiculo__modelo',              # Modelo do veículo
+        'status_os',                    # Status da OS
+        'descricao_problema_cliente',   # Descrição do problema
+        'diagnostico_mecanico',         # Diagnóstico do mecânico
+        'mecanico_responsavel__username', # Username do mecânico responsável
+        'mecanico_responsavel__first_name',
+        'mecanico_responsavel__last_name'
+    ]
 
 
 class OrdemDeServicoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
@@ -148,7 +170,7 @@ class ItemOsPecaListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         os_pk = self.kwargs['os_pk']
-        ordem_servico = OrdemDeServico.objects.get(pk=os_pk)
+        ordem_servico = get_object_or_404(OrdemDeServico, pk=os_pk) # Usar get_object_or_404
         serializer.save(ordem_servico=ordem_servico)
 
 
@@ -173,7 +195,7 @@ class ItemOsServicoListCreateAPIView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         os_pk = self.kwargs['os_pk']
-        ordem_servico = OrdemDeServico.objects.get(pk=os_pk)
+        ordem_servico = get_object_or_404(OrdemDeServico, pk=os_pk) # Usar get_object_or_404
         serializer.save(ordem_servico=ordem_servico)
 
 
@@ -191,7 +213,7 @@ class ItemOsServicoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAP
 class MecanicoListAPIView(generics.ListAPIView):
     queryset = Usuario.objects.filter(tipo_usuario='mecanico').order_by('first_name', 'last_name', 'username')
     serializer_class = MecanicoSerializer
-    permission_classes = [IsAdminOrMecanico]
+    permission_classes = [IsAdminOrMecanico] # Admin também pode ver a lista de mecânicos
 
 
 # --- FUNÇÃO UTILITÁRIA PARA RENDERIZAR PDF ---
@@ -202,8 +224,11 @@ def render_pdf_view(template_path, context_dict={}):
 
     os_object = context_dict.get('os')
     numero_da_os = "documento"
-    if os_object and hasattr(os_object, 'numero_os'):
-        numero_da_os = os_object.numero_os
+    if os_object and hasattr(os_object, 'numero_os') and os_object.numero_os:
+        numero_da_os = str(os_object.numero_os).replace('/', '_').replace('\\', '_') # Sanitizar nome
+    elif os_object and hasattr(os_object, 'id'):
+        numero_da_os = f"id_{os_object.id}"
+
 
     filename = f"os_{numero_da_os}.pdf"
     response['Content-Disposition'] = f'inline; filename="{filename}"'
@@ -224,11 +249,12 @@ class OrdemDeServicoPDFView(generics.GenericAPIView):
         'itens_pecas',
         'itens_servicos'
     ).all()
-    permission_classes = [IsAdminOrMecanico]
+    permission_classes = [IsAdminOrMecanico] # Quem pode ver OS também pode gerar PDF
+    serializer_class = OrdemDeServicoSerializer # Não estritamente necessário para este GET, mas bom para DRF UI
     lookup_field = 'pk'
 
     def get(self, request, *args, **kwargs):
-        os_instance = get_object_or_404(self.get_queryset(), pk=self.kwargs.get(self.lookup_field))
+        os_instance = get_object_or_404(self.get_queryset(), pk=kwargs.get(self.lookup_field))
         context = {'os': os_instance}
-        pdf = render_pdf_view('gestao_oficina/pdf/os_pdf_template.html', context)
+        pdf = render_pdf_view('gestao_oficina/pdf/os_pdf_template.html', context) #
         return pdf

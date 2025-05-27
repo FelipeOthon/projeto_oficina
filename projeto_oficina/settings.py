@@ -11,8 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-
-from django.conf import settings
+import os # Adicionado para os.path.join funcionar corretamente
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -82,12 +81,14 @@ ROOT_URLCONF = 'projeto_oficina.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [
+            BASE_DIR / 'templates',
+            os.path.join(BASE_DIR, 'frontend'), # <<< ALTERAÇÃO AQUI
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.request',
+                'django.template.context_processors.request', # Removido 'django.template.context_processors.debug' se não estiver usando variáveis de debug nos templates
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -139,9 +140,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en-us' # Recomendável usar 'pt-br' se a interface for em português
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'America/Sao_Paulo' # Recomendável ajustar para seu fuso horário
 
 USE_I18N = True
 
@@ -153,9 +154,14 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Adicione esta configuração se seus arquivos estáticos (CSS, JS do frontend) estiverem dentro da pasta 'frontend'
+# e não estiverem sendo encontrados.
+# STATICFILES_DIRS = [
+#     os.path.join(BASE_DIR, 'frontend'),
+# ]
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# gestao_oficina/models.py

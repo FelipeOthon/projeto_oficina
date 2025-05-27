@@ -40,8 +40,13 @@ async function handleResponseError(response) {
     throw new Error(erroMsg);
 }
 
-export async function getAgendamentos() {
-    const response = await fetch(agendamentosUrl, { headers: getAuthHeaders() });
+// MODIFICADO para aceitar searchTerm
+export async function getAgendamentos(searchTerm = '') {
+    let url = agendamentosUrl;
+    if (searchTerm && searchTerm.trim() !== '') {
+        url += `?search=${encodeURIComponent(searchTerm.trim())}`;
+    }
+    const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
         await handleResponseError(response);
     }

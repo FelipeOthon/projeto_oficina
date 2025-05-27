@@ -40,8 +40,13 @@ async function handleResponseError(response) {
     throw new Error(erroMsg);
 }
 
-export async function getOrdensDeServico() {
-    const response = await fetch(osUrl, { headers: getAuthHeaders() });
+// MODIFICADO para aceitar searchTerm
+export async function getOrdensDeServico(searchTerm = '') {
+    let url = osUrl;
+    if (searchTerm && searchTerm.trim() !== '') {
+        url += `?search=${encodeURIComponent(searchTerm.trim())}`;
+    }
+    const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
         await handleResponseError(response);
     }
