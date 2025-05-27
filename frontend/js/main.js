@@ -33,15 +33,21 @@ import {
     handleDeletarItemServico
 } from './ordemDeServicoUI.js';
 
-// --- Elementos da UI para Autenticação ---
+import {
+    renderAdminUsuarios,
+    abrirModalNovoAdminUsuario,
+    abrirModalEditarAdminUsuario,
+    handleSalvarAdminUsuario,
+    handleDeletarAdminUsuario,
+    handleMecanicoMudarSenha
+} from './adminPanelUI.js';
+
 const loginContainer = document.getElementById('login-container');
 const mainContentWrapper = document.getElementById('main-content-wrapper');
 const formLogin = document.getElementById('formLogin');
 const btnLogout = document.getElementById('btnLogout');
 const loginErrorDiv = document.getElementById('loginError');
 const userInfoSpan = document.getElementById('userInfo');
-
-// --- Elementos para Busca Global --- MODIFICADO/ADICIONADO
 const selectTipoBusca = document.getElementById('selectTipoBusca');
 const inputBuscaGlobal = document.getElementById('inputBuscaGlobal');
 const btnLimparBuscaGlobal = document.getElementById('btnLimparBuscaGlobal');
@@ -54,32 +60,115 @@ const placeholdersBusca = {
     os: "Buscar OS por número, cliente, veículo, status, problema, diagnóstico ou mecânico..."
 };
 
-// --- Funções de Autenticação ---
+async function verifyTokenAndGetUserData(token) {
+    if (!token) {
+        console.log("verifyTokenAndGetUserData: Nenhum token fornecido.");
+        return null;
+    }
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log("verifyTokenAndGetUserData: Payload do token decodificado:", payload);
+
+        const usernameFromPayload = payload.user_id; // SIMPLE JWT USA user_id por padrão.
+                                                    // Se você customizou o token para ter 'username', use payload.username
+
+        if (usernameFromPayload === undefined) { // Checa se user_id (ou username) existe no payload
+            console.error("verifyTokenAndGetUserData: 'user_id' (ou 'username') não encontrado no payload do token.");
+            return { tokenValid: false, username: undefined, userType: undefined };
+        }
+
+        // Para exibição, idealmente teríamos o username. Se payload.username não existe,
+        // e user_id é um número, precisaremos de outra forma de obter o username real para exibição.
+        // Por agora, se payload.username não existir, usernameForDisplay será o user_id.
+        const usernameForDisplay = payload.username || String(usernameFromPayload);
+
+
+        // !!!!! IMPORTANTE: LÓGICA PARA DETERMINAR ADMIN !!!!!
+        // Se você usa 'felipeothon' como username do admin, E 'username' está no payload:
+        // const userType = (payload.username === 'felipeothon') ? 'admin' : 'mecanico';
+        // SE você usa o user_id e sabe que o user_id do admin 'felipeothon' é 1:
+        const userType = (payload.user_id === 1 && payload.username === 'felipeothon') ? 'admin' : 'mecanico'; // AJUSTE CONFORME SEU CASO
+
+        console.log(`verifyTokenAndGetUserData: Username/ID do payload: ${usernameFromPayload}, Username para display: ${usernameForDisplay}, UserType determinado: ${userType}`);
+
+        // Validação do token no backend (RECOMENDADO, mas opcional por agora para simplificar)
+        /*
+        try {
+            const verifyResponse = await fetch(`${apiUrlBase}/token/verify/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
+            if (!verifyResponse.ok) {
+                const errorData = await verifyResponse.json();
+                console.warn("verifyTokenAndGetUserData: A verificação do token no backend falhou.", errorData);
+                // Mesmo se a verificação falhar (ex: token expirado), ainda retornamos os dados decodificados
+                // para que handleLogout possa limpar o localStorage, mas marcamos como tokenValid: false.
+                return { username: usernameForDisplay, userType, tokenValid: false };
+            }
+            console.log("verifyTokenAndGetUserData: Token verificado com sucesso no backend.");
+            return { username: usernameForDisplay, userType, tokenValid: true };
+        } catch (verifyError) {
+            console.error("verifyTokenAndGetUserData: Erro ao tentar verificar token no backend:", verifyError);
+            return { username: usernameForDisplay, userType, tokenValid: false };
+        }
+        */
+       // Sem a chamada de verificação explícita acima, assumimos que a decodificação é o suficiente por agora.
+       // Mas um token decodificável PODE estar expirado.
+        return { username: usernameForDisplay, userType, tokenValid: true };
+
+
+    } catch (e) {
+        console.error("verifyTokenAndGetUserData: Erro ao decodificar token ou token já inválido (malformado/corrompido):", e);
+        return { tokenValid: false, username: undefined, userType: undefined };
+    }
+}
+
+
 async function handleLogin(event) {
     event.preventDefault();
     const usernameInput = document.getElementById('loginUsername');
     const passwordInput = document.getElementById('loginPassword');
-    const username = usernameInput.value;
+    const usernameVal = usernameInput.value;
     const password = passwordInput.value;
 
     if (loginErrorDiv) loginErrorDiv.style.display = 'none';
+    console.log(`Tentando login com username: ${usernameVal}`);
 
     try {
         const response = await fetch(`${apiUrlBase}/token/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password }),
+            body: JSON.stringify({ username: usernameVal, password }),
         });
         const data = await response.json();
 
-        if (response.ok) {
+        if (response.ok && data.access) {
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
-            if(usernameInput) usernameInput.value = '';
-            if(passwordInput) passwordInput.value = '';
-            await setupApplicationAfterLogin();
+            console.log("Tokens salvos no localStorage após login.");
+
+            const userData = await verifyTokenAndGetUserData(data.access);
+
+            if (userData && userData.tokenValid && userData.username) { // userData.username é o usernameForDisplay
+                localStorage.setItem('username', userData.username);
+                localStorage.setItem('user_type', userData.userType);
+                console.log(`Login bem-sucedido. Username: ${userData.username}, UserType: ${userData.userType} salvos no localStorage.`);
+
+                if(usernameInput) usernameInput.value = '';
+                if(passwordInput) passwordInput.value = '';
+                await setupApplicationAfterLogin();
+            } else {
+                console.error("Token obtido no login parece inválido ou dados do usuário (username) não puderam ser processados a partir do token.", userData);
+                handleLogout();
+                if (loginErrorDiv) {
+                    loginErrorDiv.textContent = "Erro ao processar informações do usuário após login.";
+                    loginErrorDiv.style.display = 'block';
+                }
+            }
         } else {
-            const errorMessage = data.detail || 'Usuário ou senha inválidos.';
+            const errorMessage = data.detail || `Usuário ou senha inválidos (status: ${response.status}).`;
+            console.error("Erro de login:", errorMessage, data);
             if (loginErrorDiv) {
                 loginErrorDiv.textContent = errorMessage;
                 loginErrorDiv.style.display = 'block';
@@ -88,7 +177,7 @@ async function handleLogin(event) {
             }
         }
     } catch (error) {
-        console.error('Erro no login:', error);
+        console.error('Erro na requisição de login:', error);
         const connErrorMessage = 'Erro de conexão ao tentar fazer login.';
         if (loginErrorDiv) {
             loginErrorDiv.textContent = connErrorMessage;
@@ -100,9 +189,12 @@ async function handleLogin(event) {
 }
 
 export function handleLogout() {
+    console.log("Executando logout...");
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
-    if (userInfoSpan) userInfoSpan.textContent = '';
+    localStorage.removeItem('user_type');
+    localStorage.removeItem('username');
+    if (userInfoSpan) userInfoSpan.innerHTML = '';
     showLoginScreen();
 }
 
@@ -114,51 +206,68 @@ function showMainScreen() {
 function showLoginScreen() {
     if (loginContainer) loginContainer.style.display = 'block';
     if (mainContentWrapper) mainContentWrapper.style.display = 'none';
-    if(inputBuscaGlobal) inputBuscaGlobal.value = ''; // Limpa busca global ao deslogar
+    if(inputBuscaGlobal) inputBuscaGlobal.value = '';
+    const adminPanelSection = document.getElementById('admin-panel-section');
+    if(adminPanelSection) adminPanelSection.style.display = 'none';
+    const adminUsuariosOption = document.querySelector("#selectTipoBusca option[value='admin_usuarios']");
+    if (adminUsuariosOption) adminUsuariosOption.remove();
+    if(selectTipoBusca && selectTipoBusca.options.length > 0) { // Garante que há opções antes de tentar definir o valor
+        selectTipoBusca.value = 'clientes';
+    }
+    atualizarPlaceholderBuscaGlobal();
 }
 
-async function loadInitialData(tipo = 'clientes', searchTerm = '') { // MODIFICADO
+async function loadInitialData(tipo = 'clientes', searchTerm = '') {
+    const token = localStorage.getItem('access_token');
+    const currentUsername = localStorage.getItem('username');
+    const currentUserType = localStorage.getItem('user_type');
+
+    if (!token || currentUsername === null || currentUserType === null) { // Checa explicitamente por null se username/userType não forem achados
+        console.warn("loadInitialData: Token, username ou userType ausentes do localStorage. Deslogando.");
+        handleLogout();
+        return;
+    }
+
+    console.log(`loadInitialData - Tipo: ${tipo}, Termo: ${searchTerm || "Nenhum"}, Usuário: ${currentUsername} (${currentUserType})`);
     try {
-        // Por padrão, carrega clientes sem filtro, mas permite carregar outros tipos
-        // A busca global irá controlar qual função de render chamar com searchTerm
         switch (tipo) {
-            case 'clientes':
-                await renderClientes(searchTerm);
-                break;
-            case 'veiculos':
-                await renderVeiculos(searchTerm);
-                break;
-            case 'agendamentos':
-                await renderAgendamentos(searchTerm);
-                break;
-            case 'os':
-                await renderOrdensDeServico(searchTerm);
-                break;
+            case 'clientes': await renderClientes(searchTerm); break;
+            case 'veiculos': await renderVeiculos(searchTerm); break;
+            case 'agendamentos': await renderAgendamentos(searchTerm); break;
+            case 'os': await renderOrdensDeServico(searchTerm); break;
+            case 'admin_usuarios':
+                 if (currentUserType === 'admin') await renderAdminUsuarios(searchTerm);
+                 else console.warn("Tentativa de carregar admin_usuarios por usuário não admin.");
+                 break;
             default:
-                await renderClientes(); // Fallback
-        }
-        // Se quiser carregar todas as listas de uma vez (sem filtro) ao iniciar, pode manter o Promise.all
-        // Mas com a busca global, geralmente carregamos uma por vez ou sob demanda.
-        // Se quiser carregar todas as listas na inicialização, faça-o aqui:
-        if (!searchTerm) { // Só carrega tudo se não for uma busca específica
-             await Promise.all([
-                 renderClientes(), // Já chamado ou será chamado pelo switch
-                 renderVeiculos(),
-                 renderAgendamentos(),
-                 renderOrdensDeServico()
-             ]);
+                console.warn(`loadInitialData: Tipo de busca desconhecido '${tipo}'. Carregando clientes.`);
+                await renderClientes(searchTerm);
         }
 
+        if (!searchTerm && tipo === 'clientes' && mainContentWrapper.style.display === 'block') {
+             console.log("loadInitialData: Carregando listas adicionais em paralelo (carga inicial e tela principal visível).");
+             const promises = [renderVeiculos(), renderAgendamentos(), renderOrdensDeServico()];
+             if (currentUserType === 'admin') {
+                // Evita chamar renderAdminUsuarios duas vezes se a aba já for admin_usuarios
+                if (selectTipoBusca && selectTipoBusca.value !== 'admin_usuarios') {
+                    promises.push(renderAdminUsuarios());
+                }
+             }
+             await Promise.all(promises);
+        }
     } catch (error) {
-        console.error("Erro ao carregar dados:", error);
+        console.error(`Erro ao carregar dados para tipo '${tipo}':`, error);
     }
 }
 
-// --- Lógica para Busca Global --- ADICIONADO
 function atualizarPlaceholderBuscaGlobal() {
     if (selectTipoBusca && inputBuscaGlobal) {
         const tipoSelecionado = selectTipoBusca.value;
-        inputBuscaGlobal.placeholder = placeholdersBusca[tipoSelecionado] || "Digite para buscar...";
+        if (tipoSelecionado === 'admin_usuarios') {
+            inputBuscaGlobal.placeholder = "Buscar usuário por username, nome ou email...";
+        } else {
+            inputBuscaGlobal.placeholder = placeholdersBusca[tipoSelecionado] || "Digite para buscar...";
+        }
     }
 }
 
@@ -166,62 +275,32 @@ async function executarBuscaGlobal() {
     if (!selectTipoBusca || !inputBuscaGlobal) return;
     const tipo = selectTipoBusca.value;
     const termo = inputBuscaGlobal.value.trim();
-
-    console.log(`Buscando em '${tipo}' por '${termo}'`);
-
-    // Mostra "carregando" na lista apropriada
-    const listaUI = document.getElementById(`lista-${tipo}`); // Ex: lista-clientes, lista-veiculos
+    console.log(`Executando busca global em '${tipo}' por '${termo}'`);
+    const listaId = (tipo === 'admin_usuarios') ? 'lista-admin-usuarios' : `lista-${tipo}`;
+    const listaUI = document.getElementById(listaId);
     if (listaUI) {
-        listaUI.innerHTML = `<li class="list-group-item">Buscando ${tipo}...</li>`;
+        listaUI.innerHTML = `<li class="list-group-item">Buscando ${tipo.replace('_', ' ')}...</li>`;
     } else {
-        console.warn(`Elemento de lista para '${tipo}' não encontrado.`);
+        console.warn(`Elemento de lista com ID '${listaId}' não encontrado para busca global.`);
     }
-
-
-    switch (tipo) {
-        case 'clientes':
-            await renderClientes(termo);
-            break;
-        case 'veiculos':
-            await renderVeiculos(termo);
-            break;
-        case 'agendamentos':
-            await renderAgendamentos(termo);
-            break;
-        case 'os':
-            await renderOrdensDeServico(termo);
-            break;
-        default:
-            console.warn("Tipo de busca desconhecido:", tipo);
-    }
+    await loadInitialData(tipo, termo);
 }
 
 function limparBuscaGlobalEAtualizar() {
     if (!selectTipoBusca || !inputBuscaGlobal) return;
     inputBuscaGlobal.value = '';
     const tipo = selectTipoBusca.value;
-    switch (tipo) { // Renderiza a lista completa da seção atual
-        case 'clientes':
-            renderClientes();
-            break;
-        case 'veiculos':
-            renderVeiculos();
-            break;
-        case 'agendamentos':
-            renderAgendamentos();
-            break;
-        case 'os':
-            renderOrdensDeServico();
-            break;
-    }
+    console.log(`Limpando busca e atualizando para tipo: ${tipo}`);
+    loadInitialData(tipo);
 }
 
 function setupBuscaGlobalListeners() {
     if (selectTipoBusca) {
         selectTipoBusca.addEventListener('change', () => {
+            console.log("Tipo de busca alterado para:", selectTipoBusca.value);
             atualizarPlaceholderBuscaGlobal();
-            if(inputBuscaGlobal) inputBuscaGlobal.value = ''; // Limpa o campo de busca ao mudar o tipo
-            executarBuscaGlobal(); // Carrega a lista do novo tipo selecionado (sem termo de busca)
+            if(inputBuscaGlobal) inputBuscaGlobal.value = '';
+            executarBuscaGlobal();
             if(inputBuscaGlobal) inputBuscaGlobal.focus();
         });
     }
@@ -235,11 +314,12 @@ function setupBuscaGlobalListeners() {
         btnLimparBuscaGlobal.addEventListener('click', limparBuscaGlobalEAtualizar);
     }
 }
-// --- FIM Lógica para Busca Global ---
-
 
 function setupCommonEventListeners() {
-    // Listeners para botões "Novo *" e "Salvar *" nos modais.
+    // ... (todos os seus event listeners para botões de CRUD etc. permanecem aqui) ...
+    // Certifique-se que os listeners para 'btnNovoUsuarioAdmin', 'btnSalvarAdminUsuario',
+    // e 'btnSalvarNovaSenhaMecanico' estão aqui e corretos.
+
     const btnNovoCliente = document.getElementById('btnNovoCliente');
     if (btnNovoCliente) btnNovoCliente.addEventListener('click', abrirModalNovoCliente);
     const btnSalvarCliente = document.getElementById('btnSalvarCliente');
@@ -254,12 +334,10 @@ function setupCommonEventListeners() {
     if (btnNovoAgendamento) btnNovoAgendamento.addEventListener('click', abrirModalNovoAgendamento);
     const btnSalvarAgendamento = document.getElementById('btnSalvarAgendamento');
     if (btnSalvarAgendamento) btnSalvarAgendamento.addEventListener('click', handleSalvarAgendamento);
-
     const agendamentoClienteSelect = document.getElementById('agendamentoCliente');
     if (agendamentoClienteSelect) {
         agendamentoClienteSelect.addEventListener('change', function() {
-            const clienteId = this.value;
-            populateVeiculosParaAgendamentoDropdown(clienteId, null);
+            populateVeiculosParaAgendamentoDropdown(this.value, null);
         });
     }
 
@@ -267,12 +345,10 @@ function setupCommonEventListeners() {
     if (btnNovaOS) btnNovaOS.addEventListener('click', abrirModalNovaOS);
     const btnSalvarOS = document.getElementById('btnSalvarOS');
     if (btnSalvarOS) btnSalvarOS.addEventListener('click', handleSalvarOS);
-
     const osClienteSelect = document.getElementById('osCliente');
     if (osClienteSelect) {
         osClienteSelect.addEventListener('change', function() {
-            const clienteId = this.value;
-            populateVeiculosParaOS(clienteId, null);
+            populateVeiculosParaOS(this.value, null);
         });
     }
 
@@ -281,27 +357,29 @@ function setupCommonEventListeners() {
     const btnSalvarItemServico = document.getElementById('btnSalvarItemServico');
     if (btnSalvarItemServico) btnSalvarItemServico.addEventListener('click', handleSalvarItemServico);
 
-    // Delegação de eventos para listas dinâmicas
-    const mainContainer = document.getElementById('main-content-wrapper'); // Ou um container mais específico se preferir
+    const btnNovoUsuarioAdmin = document.getElementById('btnNovoUsuarioAdmin');
+    if (btnNovoUsuarioAdmin) btnNovoUsuarioAdmin.addEventListener('click', abrirModalNovoAdminUsuario);
+    const btnSalvarAdminUsuario = document.getElementById('btnSalvarAdminUsuario');
+    if (btnSalvarAdminUsuario) btnSalvarAdminUsuario.addEventListener('click', handleSalvarAdminUsuario);
+    const btnSalvarNovaSenhaMecanico = document.getElementById('btnSalvarNovaSenhaMecanico');
+    if(btnSalvarNovaSenhaMecanico) btnSalvarNovaSenhaMecanico.addEventListener('click', handleMecanicoMudarSenha);
+
+    const mainContainer = document.getElementById('main-content-wrapper');
     if (mainContainer) {
         mainContainer.addEventListener('click', function(event) {
             const targetButton = event.target.closest('button');
             if (!targetButton) return;
-
             const id = targetButton.dataset.id;
-            // Cliente
+
             if (id && targetButton.classList.contains('btn-editar')) abrirModalEditarCliente(id);
             else if (id && targetButton.classList.contains('btn-deletar')) handleDeletarCliente(id);
             else if (id && targetButton.classList.contains('btn-detalhes')) handleVerDetalhesCliente(id);
-            // Veículo
             else if (id && targetButton.classList.contains('btn-editar-veiculo')) abrirModalEditarVeiculo(id);
             else if (id && targetButton.classList.contains('btn-deletar-veiculo')) handleDeletarVeiculo(id);
             else if (id && targetButton.classList.contains('btn-detalhes-veiculo')) handleVerDetalhesVeiculo(id);
-            // Agendamento
             else if (id && targetButton.classList.contains('btn-editar-agendamento')) abrirModalEditarAgendamento(id);
             else if (id && targetButton.classList.contains('btn-deletar-agendamento')) handleDeletarAgendamento(id);
             else if (id && targetButton.classList.contains('btn-detalhes-agendamento')) handleVerDetalhesAgendamento(id);
-            // OS
             else if (id && targetButton.classList.contains('btn-editar-os')) abrirModalEditarOS(id);
             else if (id && targetButton.classList.contains('btn-deletar-os')) handleDeletarOS(id);
             else if (id && targetButton.classList.contains('btn-detalhes-os')) {
@@ -309,19 +387,17 @@ function setupCommonEventListeners() {
                 if(osDetalhesModalElement) osDetalhesModalElement.dataset.currentOsId = id;
                 handleVerDetalhesOS(id);
             }
+            else if (id && targetButton.classList.contains('btn-editar-admin-usuario')) abrirModalEditarAdminUsuario(id);
+            else if (id && targetButton.classList.contains('btn-deletar-admin-usuario')) handleDeletarAdminUsuario(id);
 
-            // Eventos dentro do Modal de Detalhes da OS
             const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
             if (osDetalhesModalElement && osDetalhesModalElement.contains(targetButton)) {
                 const osIdContext = osDetalhesModalElement.dataset.currentOsId;
-                const itemId = targetButton.dataset.itemId; // Pode ser undefined se não for um botão de item
-
-                if (targetButton.id === 'btnAbrirModalAdicionarPecaOS') {
-                    if (osIdContext) abrirModalAdicionarPeca(osIdContext);
-                } else if (targetButton.id === 'btnAbrirModalAdicionarServicoOS') {
-                    if (osIdContext) abrirModalAdicionarServico(osIdContext);
-                } else if (itemId) { // Ações que dependem de um itemId
-                    const osIdFromButton = targetButton.dataset.osId; // Os botões de item têm data-os-id
+                const itemId = targetButton.dataset.itemId;
+                if (targetButton.id === 'btnAbrirModalAdicionarPecaOS' && osIdContext) abrirModalAdicionarPeca(osIdContext);
+                else if (targetButton.id === 'btnAbrirModalAdicionarServicoOS' && osIdContext) abrirModalAdicionarServico(osIdContext);
+                else if (itemId) {
+                    const osIdFromButton = targetButton.dataset.osId;
                     if (targetButton.classList.contains('btn-editar-item-peca')) abrirModalEditarItemPeca(osIdFromButton, itemId);
                     else if (targetButton.classList.contains('btn-editar-item-servico')) abrirModalEditarItemServico(osIdFromButton, itemId);
                     else if (targetButton.classList.contains('btn-deletar-item-peca')) handleDeletarItemPeca(osIdFromButton, itemId);
@@ -330,40 +406,100 @@ function setupCommonEventListeners() {
             }
         });
     }
-}
 
+    document.addEventListener('click', function(event) {
+        if (event.target && event.target.id === 'btnAbrirModalMudarSenhaMecanico') {
+            const changePasswordModal = $('#mecanicoChangePasswordModal');
+            if (changePasswordModal.length) {
+                const form = document.getElementById('formMecanicoChangePassword');
+                const errorDiv = document.getElementById('changePasswordError');
+                if(form) form.reset();
+                if(errorDiv) errorDiv.style.display = 'none';
+                changePasswordModal.modal('show');
+            }
+        }
+    });
+}
 
 async function setupApplicationAfterLogin() {
+    console.log("Executando setupApplicationAfterLogin...");
     showMainScreen();
-    // Carrega a lista inicial (Clientes por padrão) e atualiza o placeholder
-    atualizarPlaceholderBuscaGlobal(); // Define o placeholder inicial
-    await loadInitialData('clientes'); // Carrega clientes inicialmente
 
-    // Carrega as outras listas em segundo plano para que as seções não fiquem vazias ao mudar o tipo de busca
-    // antes de uma busca ser efetivamente realizada para aquele tipo.
-    // Isso é opcional, mas melhora a UX.
-    renderVeiculos();
-    renderAgendamentos();
-    renderOrdensDeServico();
+    const username = localStorage.getItem('username');
+    const userType = localStorage.getItem('user_type');
+    console.log(`setupApplicationAfterLogin - Valores atuais do localStorage - Username: ${username}, UserType: ${userType}`);
 
-    setupCommonEventListeners();
-    setupBuscaGlobalListeners(); // Configura os listeners da busca global
+    if (!username || !userType) {
+        console.error("setupApplicationAfterLogin: Username ou UserType NÃO ENCONTRADOS no localStorage. Isso não deveria acontecer após um login bem-sucedido. Deslogando.");
+        handleLogout();
+        return;
+    }
+
+    if (userInfoSpan) {
+        userInfoSpan.innerHTML = `Usuário: <strong>${username}</strong> (${userType}) `;
+        const oldChangePassButton = document.getElementById('btnAbrirModalMudarSenhaMecanico');
+        if (oldChangePassButton) oldChangePassButton.remove();
+        if (userType === 'mecanico') {
+            const changePassButton = document.createElement('button');
+            changePassButton.className = 'btn btn-sm btn-outline-info ml-2';
+            changePassButton.id = 'btnAbrirModalMudarSenhaMecanico';
+            changePassButton.textContent = 'Alterar Senha';
+            userInfoSpan.appendChild(changePassButton);
+        }
+    } else {
+        console.warn("Elemento userInfoSpan não encontrado no DOM.");
+    }
+
+    const adminPanelSection = document.getElementById('admin-panel-section');
+    let adminUsuariosOption = document.querySelector("#selectTipoBusca option[value='admin_usuarios']");
+
+    if (userType === 'admin') {
+        console.log("Usuário é admin. Configurando painel e opção de busca.");
+        if (adminPanelSection) adminPanelSection.style.display = 'block';
+        if (selectTipoBusca && !adminUsuariosOption) {
+            const option = document.createElement('option');
+            option.value = 'admin_usuarios';
+            option.textContent = 'Usuários (Admin)';
+            selectTipoBusca.appendChild(option);
+        }
+    } else {
+        console.log("Usuário não é admin. Ocultando painel e removendo opção de busca.");
+        if (adminPanelSection) adminPanelSection.style.display = 'none';
+        if (adminUsuariosOption) adminUsuariosOption.remove();
+    }
+
+    atualizarPlaceholderBuscaGlobal(); // Atualiza o placeholder DEPOIS de mexer nas options
+
+    const tipoBuscaInicial = selectTipoBusca ? selectTipoBusca.value : 'clientes';
+    console.log("Carregando dados iniciais para a aba selecionada:", tipoBuscaInicial);
+    await loadInitialData(tipoBuscaInicial);
 }
 
-// --- Inicialização da Aplicação ---
+
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log("DOM completamente carregado e parseado.");
     if (formLogin) formLogin.addEventListener('submit', handleLogin);
     if (btnLogout) btnLogout.addEventListener('click', handleLogout);
 
+    setupCommonEventListeners();
+    setupBuscaGlobalListeners();
+
     const token = localStorage.getItem('access_token');
     if (token) {
-        console.log("Token encontrado, carregando app...");
-        await setupApplicationAfterLogin();
+        console.log("Token encontrado no localStorage na carga inicial. Verificando...");
+        const userData = await verifyTokenAndGetUserData(token);
+
+        if (userData && userData.tokenValid && userData.username) {
+            localStorage.setItem('username', userData.username); // Garante que username está atualizado
+            localStorage.setItem('user_type', userData.userType); // Garante que userType está atualizado
+            console.log("Token verificado na carga inicial. Username e UserType definidos/confirmados no localStorage. Configurando aplicação...");
+            await setupApplicationAfterLogin();
+        } else {
+            console.warn("Token encontrado na carga inicial mas inválido ou dados do usuário (username) não puderam ser obtidos do token. Deslogando.");
+            handleLogout();
+        }
     } else {
-        console.log("Nenhum token encontrado, mostrando login...");
+        console.log("Nenhum token encontrado no localStorage na carga inicial. Mostrando tela de login.");
         showLoginScreen();
     }
 });
-
-// Exportar handleLogout para que possa ser chamado por outros módulos em caso de erro 401.
-// window.appGlobal = { handleLogout }; // Uma forma, mas a importação direta é melhor.

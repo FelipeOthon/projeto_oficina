@@ -14,7 +14,11 @@ from .views import (
     ItemOsServicoListCreateAPIView,
     ItemOsServicoRetrieveUpdateDestroyAPIView,
     MecanicoListAPIView,
-    OrdemDeServicoPDFView # Importar a nova view
+    OrdemDeServicoPDFView,
+    # --- ADIÇÕES ---
+    AdminUserListCreateAPIView,
+    AdminUserRetrieveUpdateDestroyAPIView,
+    MecanicoChangePasswordView
 )
 
 app_name = 'gestao_oficina'
@@ -37,8 +41,7 @@ urlpatterns = [
     path('ordens-servico/', OrdemDeServicoListCreateAPIView.as_view(), name='ordemdeservico-list-create'),
     path('ordens-servico/<int:pk>/', OrdemDeServicoRetrieveUpdateDestroyAPIView.as_view(),
          name='ordemdeservico-detail-update-delete'),
-    # URL para o PDF da Ordem de Serviço
-    path('ordens-servico/<int:pk>/pdf/', OrdemDeServicoPDFView.as_view(), name='ordemdeservico-pdf'), # ADICIONADO
+    path('ordens-servico/<int:pk>/pdf/', OrdemDeServicoPDFView.as_view(), name='ordemdeservico-pdf'),
 
     # URLs para Itens de Peças de uma OS específica
     path('ordens-servico/<int:os_pk>/pecas/', ItemOsPecaListCreateAPIView.as_view(), name='itemospeca-list-create'),
@@ -51,6 +54,11 @@ urlpatterns = [
     path('ordens-servico/<int:os_pk>/servicos/<int:item_pk>/', ItemOsServicoRetrieveUpdateDestroyAPIView.as_view(),
          name='itemosservico-detail-update-delete'),
 
-    # URL para listar mecânicos
+    # URL para listar mecânicos (já existente)
     path('usuarios/mecanicos/', MecanicoListAPIView.as_view(), name='mecanico-list'),
+
+    # --- NOVAS URLS PARA GERENCIAMENTO DE USUÁRIOS ---
+    path('admin/usuarios/', AdminUserListCreateAPIView.as_view(), name='admin-user-list-create'),
+    path('admin/usuarios/<int:pk>/', AdminUserRetrieveUpdateDestroyAPIView.as_view(), name='admin-user-detail-update-delete'),
+    path('usuarios/mudar-senha/', MecanicoChangePasswordView.as_view(), name='mecanico-change-password'),
 ]

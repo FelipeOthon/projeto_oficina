@@ -3,18 +3,21 @@ from rest_framework import serializers
 from .models import (
     Cliente,
     Veiculo,
-    Usuario,
+    Usuario,  # Certifique-se que Usuario está importado
     Agendamento,
     OrdemDeServico,
     ItemOsPeca,
     ItemOsServico
 )
+from django.contrib.auth.hashers import make_password  # Para hashear a senha
+
 
 class ClienteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cliente
         fields = '__all__'
         read_only_fields = ('data_cadastro',)
+
 
 class VeiculoSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome_completo', read_only=True)
@@ -28,11 +31,12 @@ class VeiculoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ('data_cadastro', 'cliente_nome')
 
+
 class AgendamentoSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome_completo', read_only=True)
     veiculo_info = serializers.SerializerMethodField(read_only=True)
-    mecanico_nome = serializers.CharField(source='mecanico_atribuido.get_full_name_or_username', read_only=True, allow_null=True)
-
+    mecanico_nome = serializers.CharField(source='mecanico_atribuido.get_full_name_or_username', read_only=True,
+                                          allow_null=True)
 
     class Meta:
         model = Agendamento
@@ -49,6 +53,7 @@ class AgendamentoSerializer(serializers.ModelSerializer):
             return f"{obj.veiculo.marca} {obj.veiculo.modelo} ({obj.veiculo.placa})"
         return None
 
+
 class ItemOsPecaSerializer(serializers.ModelSerializer):
     valor_total_item = serializers.ReadOnlyField()
 
@@ -56,10 +61,12 @@ class ItemOsPecaSerializer(serializers.ModelSerializer):
         model = ItemOsPeca
         fields = ['id', 'descricao_peca', 'quantidade', 'valor_unitario', 'valor_total_item']
 
+
 class ItemOsServicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ItemOsServico
         fields = ['id', 'descricao_servico', 'valor_servico']
+
 
 class MecanicoSerializer(serializers.ModelSerializer):
     nome_display = serializers.SerializerMethodField()
@@ -73,16 +80,14 @@ class MecanicoSerializer(serializers.ModelSerializer):
             return f"{obj.first_name} {obj.last_name}"
         return obj.username
 
+
 class OrdemDeServicoSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome_completo', read_only=True)
     veiculo_info = serializers.CharField(source='veiculo.__str__', read_only=True)
-    mecanico_nome = serializers.CharField(source='mecanico_responsavel.get_full_name_or_username', read_only=True, allow_null=True)
+    mecanico_nome = serializers.CharField(source='mecanico_responsavel.get_full_name_or_username', read_only=True,
+                                          allow_null=True)
     itens_pecas = ItemOsPecaSerializer(many=True, read_only=True)
     itens_servicos = ItemOsServicoSerializer(many=True, read_only=True)
-
-    # numero_os será read_only devido ao editable=False no modelo,
-    # mas podemos ser explícitos se quisermos.
-    # O DRF infere read_only=True para campos com editable=False no modelo.
 
     class Meta:
         model = OrdemDeServico
@@ -99,8 +104,73 @@ class OrdemDeServicoSerializer(serializers.ModelSerializer):
             'itens_pecas', 'itens_servicos',
         ]
         read_only_fields = (
-            'numero_os', # Garantindo que seja read-only aqui também
+            'numero_os',
             'data_entrada', 'cliente_nome', 'veiculo_info', 'mecanico_nome',
             'itens_pecas', 'itens_servicos',
             'valor_total_pecas', 'valor_total_servicos', 'valor_total_os'
         )
+
+
+# --- ADIÇÕES PARA GERENCIAMENTO DE USUÁRIOS ---
+class AdminUserManagementSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, style={'input_type': 'password'})
+
+    class Meta:
+        model = Usuario
+        fields = [
+            'id', 'username', 'password', 'first_name', 'last_name', 'email',
+            'tipo_usuario', 'is_active', 'is_staff', 'is_superuser', 'date_joined', 'last_login'
+        ]
+        read_only_fields = ('date_joined', 'last_login', 'id')
+        extra_kwargs = {
+            'first_name': {'required': False, 'allow_blank': True},
+            'last_name': {'required': False, 'allow_blank': True},
+            'email': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'tipo_usuario': {'required': False}  # Permitir que admin defina, mas com default no create
+        }
+
+    def create(self, validated_data):
+        validated_data.setdefault('tipo_usuario', 'mecanico')
+
+        if 'password' not in validated_data or not validated_data.get('password'):
+            raise serializers.ValidationError({'password': 'Este campo é obrigatório na criação.'})
+
+        validated_data['password'] = make_password(validated_data.get('password'))
+        # Se o admin não especificar is_staff ou is_superuser, eles serão False por padrão no model do Django.
+        # No nosso caso, um mecânico não deve ser staff nem superuser por padrão.
+        validated_data.setdefault('is_staff', False)
+        validated_data.setdefault('is_superuser', False)
+        user = Usuario.objects.create(**validated_data)
+        return user
+
+    def update(self, instance, validated_data):
+        if 'password' in validated_data and validated_data['password']:
+            validated_data['password'] = make_password(validated_data.get('password'))
+        else:
+            validated_data.pop('password', None)
+
+        # Admin não deve poder alterar o próprio tipo de usuário ou de outros para admin facilmente aqui.
+        # Se 'tipo_usuario' não for enviado na requisição de update, mantém o existente.
+        # Se for enviado, atualiza. (Cuidado para admin não se rebaixar sem querer)
+        # instance.tipo_usuario = validated_data.get('tipo_usuario', instance.tipo_usuario)
+
+        return super().update(instance, validated_data)
+
+
+class MecanicoChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, write_only=True, style={'input_type': 'password'})
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError(
+                "Sua senha antiga foi inserida incorretamente. Por favor, tente novamente.")
+        return value
+
+    def save(self, **kwargs):
+        password = self.validated_data['new_password']
+        user = self.context['request'].user
+        user.set_password(password)
+        user.save()
+        return user
