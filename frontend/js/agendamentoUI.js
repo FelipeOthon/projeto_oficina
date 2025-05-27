@@ -2,6 +2,7 @@
 import { getAgendamentos, getAgendamentoById, createAgendamento, updateAgendamento, deleteAgendamentoAPI } from './agendamentoService.js';
 import { getClientes } from './clienteService.js';
 import { getVeiculos } from './veiculoService.js';
+import { getMecanicos } from './usuarioService.js'; // <-- IMPORTAÇÃO ADICIONADA
 
 const listaAgendamentosUI = document.getElementById('lista-agendamentos');
 const formAgendamento = document.getElementById('formAgendamento');
@@ -88,6 +89,39 @@ export async function populateVeiculosParaAgendamentoDropdown(clienteId, selecte
     }
 }
 
+// NOVA FUNÇÃO para popular mecânicos
+export async function populateMecanicosParaAgendamentoDropdown(selectedMecanicoId = null) {
+    if (!agendamentoMecanicoSelect) {
+        console.error("Elemento #agendamentoMecanico não encontrado para popular mecânicos.");
+        return;
+    }
+    try {
+        console.log("[agendamentoUI.js] Buscando mecânicos para dropdown...");
+        const mecanicos = await getMecanicos(); // Chama a nova função de serviço
+        agendamentoMecanicoSelect.innerHTML = '<option value="">Selecione um Mecânico (Opcional)...</option>';
+        if (Array.isArray(mecanicos) && mecanicos.length > 0) {
+            mecanicos.forEach(mecanico => {
+                const option = document.createElement('option');
+                option.value = mecanico.id;
+                // Usa o campo 'nome_display' que configuramos no MecanicoSerializer
+                option.textContent = mecanico.nome_display || mecanico.username;
+                if (selectedMecanicoId && mecanico.id === parseInt(selectedMecanicoId)) {
+                    option.selected = true;
+                }
+                agendamentoMecanicoSelect.appendChild(option);
+            });
+            console.log("[agendamentoUI.js] Dropdown de mecânicos populado.");
+        } else {
+            console.log("[agendamentoUI.js] Nenhum mecânico encontrado.");
+            agendamentoMecanicoSelect.innerHTML = '<option value="">Nenhum mecânico disponível</option>';
+        }
+    } catch (error) {
+        console.error('Erro ao popular dropdown de mecânicos:', error);
+        agendamentoMecanicoSelect.innerHTML = '<option value="">Erro ao carregar mecânicos</option>';
+    }
+}
+
+
 async function configurarModalAgendamento(modo, agendamentoData = null) {
     if (!formAgendamento) { console.error("Formulário de Agendamento não encontrado."); return; }
     formAgendamento.reset();
@@ -99,11 +133,14 @@ async function configurarModalAgendamento(modo, agendamentoData = null) {
     let salvarVisivel = true;
     let camposDesabilitados = false;
 
+    // Sempre popular mecânicos, independentemente do modo
+    await populateMecanicosParaAgendamentoDropdown(agendamentoData ? agendamentoData.mecanico_atribuido : null);
+
     if (modo === 'novo') {
         tituloModal = 'Adicionar Novo Agendamento';
         await populateClientesParaAgendamentoDropdown();
         if (agendamentoVeiculoSelect) agendamentoVeiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro...</option>';
-        if (agendamentoMecanicoSelect) agendamentoMecanicoSelect.innerHTML = '<option value="">Selecione um Mecânico (Opcional)...</option>';
+        // O populateMecanicosParaAgendamentoDropdown já foi chamado acima
     } else if (modo === 'editar' || modo === 'detalhes') {
         tituloModal = (modo === 'editar') ? 'Editar Agendamento' : 'Detalhes do Agendamento';
         salvarVisivel = (modo === 'editar');
@@ -112,13 +149,15 @@ async function configurarModalAgendamento(modo, agendamentoData = null) {
         if (agendamentoData) {
             await populateClientesParaAgendamentoDropdown(agendamentoData.cliente);
             await populateVeiculosParaAgendamentoDropdown(agendamentoData.cliente, agendamentoData.veiculo);
+            // O populateMecanicosParaAgendamentoDropdown já foi chamado e selecionou o mecânico, se houver
 
             if (agendamentoDataInput) agendamentoDataInput.value = agendamentoData.data_agendamento || '';
             if (agendamentoHoraInput) agendamentoHoraInput.value = agendamentoData.hora_agendamento ? agendamentoData.hora_agendamento.substring(0,5) : '';
             if (agendamentoServicoSolicitadoInput) agendamentoServicoSolicitadoInput.value = agendamentoData.servico_solicitado || '';
             if (agendamentoStatusSelect) agendamentoStatusSelect.value = agendamentoData.status_agendamento || 'Agendado';
             if (agendamentoObservacoesInput) agendamentoObservacoesInput.value = agendamentoData.observacoes || '';
-            if (agendamentoMecanicoSelect && agendamentoData.mecanico_atribuido) agendamentoMecanicoSelect.value = agendamentoData.mecanico_atribuido;
+            // A linha abaixo não é mais necessária aqui, pois o populateMecanicos já trata a seleção
+            // if (agendamentoMecanicoSelect && agendamentoData.mecanico_atribuido) agendamentoMecanicoSelect.value = agendamentoData.mecanico_atribuido;
         } else {
             await populateClientesParaAgendamentoDropdown();
         }
@@ -131,8 +170,11 @@ async function configurarModalAgendamento(modo, agendamentoData = null) {
     }
     if (agendamentoClienteSelect && modo !== 'detalhes') agendamentoClienteSelect.disabled = false;
     else if (agendamentoClienteSelect) agendamentoClienteSelect.disabled = true;
+
     if (agendamentoVeiculoSelect && modo !== 'detalhes') agendamentoVeiculoSelect.disabled = false;
     else if (agendamentoVeiculoSelect) agendamentoVeiculoSelect.disabled = true;
+
+    // O select de mecânico deve seguir a mesma lógica de habilitação/desabilitação
     if (agendamentoMecanicoSelect && modo !== 'detalhes') agendamentoMecanicoSelect.disabled = false;
     else if (agendamentoMecanicoSelect) agendamentoMecanicoSelect.disabled = true;
 

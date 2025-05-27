@@ -31,7 +31,8 @@ class VeiculoSerializer(serializers.ModelSerializer):
 class AgendamentoSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome_completo', read_only=True)
     veiculo_info = serializers.SerializerMethodField(read_only=True)
-    mecanico_nome = serializers.CharField(source='mecanico_atribuido.username', read_only=True, allow_null=True)
+    mecanico_nome = serializers.CharField(source='mecanico_atribuido.get_full_name_or_username', read_only=True, allow_null=True)
+
 
     class Meta:
         model = Agendamento
@@ -49,7 +50,7 @@ class AgendamentoSerializer(serializers.ModelSerializer):
         return None
 
 class ItemOsPecaSerializer(serializers.ModelSerializer):
-    valor_total_item = serializers.ReadOnlyField() # Usa a @property do model
+    valor_total_item = serializers.ReadOnlyField()
 
     class Meta:
         model = ItemOsPeca
@@ -60,14 +61,28 @@ class ItemOsServicoSerializer(serializers.ModelSerializer):
         model = ItemOsServico
         fields = ['id', 'descricao_servico', 'valor_servico']
 
+class MecanicoSerializer(serializers.ModelSerializer):
+    nome_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Usuario
+        fields = ['id', 'username', 'first_name', 'last_name', 'nome_display']
+
+    def get_nome_display(self, obj):
+        if obj.first_name and obj.last_name:
+            return f"{obj.first_name} {obj.last_name}"
+        return obj.username
+
 class OrdemDeServicoSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome_completo', read_only=True)
     veiculo_info = serializers.CharField(source='veiculo.__str__', read_only=True)
-    mecanico_nome = serializers.CharField(source='mecanico_responsavel.username', read_only=True, allow_null=True)
+    mecanico_nome = serializers.CharField(source='mecanico_responsavel.get_full_name_or_username', read_only=True, allow_null=True)
     itens_pecas = ItemOsPecaSerializer(many=True, read_only=True)
     itens_servicos = ItemOsServicoSerializer(many=True, read_only=True)
-    # O campo 'valor_total_os' agora é um campo do model, então ele será incluído por 'fields'
-    # e marcado como read_only abaixo.
+
+    # numero_os será read_only devido ao editable=False no modelo,
+    # mas podemos ser explícitos se quisermos.
+    # O DRF infere read_only=True para campos com editable=False no modelo.
 
     class Meta:
         model = OrdemDeServico
@@ -79,12 +94,13 @@ class OrdemDeServicoSerializer(serializers.ModelSerializer):
             'data_entrada', 'data_saida_prevista', 'data_conclusao',
             'descricao_problema_cliente', 'diagnostico_mecanico', 'servicos_executados_obs',
             'valor_total_pecas', 'valor_total_servicos', 'valor_desconto',
-            'valor_total_os', # Campo do model para o total geral
+            'valor_total_os',
             'status_os', 'observacoes_internas',
             'itens_pecas', 'itens_servicos',
         ]
         read_only_fields = (
+            'numero_os', # Garantindo que seja read-only aqui também
             'data_entrada', 'cliente_nome', 'veiculo_info', 'mecanico_nome',
             'itens_pecas', 'itens_servicos',
-            'valor_total_pecas', 'valor_total_servicos', 'valor_total_os' # Todos os totais são calculados no backend
+            'valor_total_pecas', 'valor_total_servicos', 'valor_total_os'
         )

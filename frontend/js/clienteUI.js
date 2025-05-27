@@ -95,12 +95,12 @@ export async function renderClientes() {
                 item.innerHTML = `
                     <div>
                         <strong>${cliente.nome_completo}</strong><br>
-                        <small>Email: ${cliente.email || 'N/A'} | Tel: ${cliente.telefone_principal || 'N/A'}</small>
-                    </div>
-                    <div>
-                        <button class="btn btn-sm btn-info mr-2 btn-detalhes" data-id="${cliente.id}">Detalhes</button>
-                        <button class="btn btn-sm btn-warning mr-2 btn-editar" data-id="${cliente.id}">Editar</button>
-                        <button class="btn btn-sm btn-danger btn-deletar" data-id="${cliente.id}">Deletar</button>
+                        <small>Email: ${cliente.email || 'N/A'} | Tel: <span class="math-inline">\{cliente\.telefone\_principal \|\| 'N/A'\}</small\>
+</div\>
+<div\>
+<button class\="btn btn\-sm btn\-info mr\-2 btn\-detalhes" data\-id\="</span>{cliente.id}">Detalhes</button>
+                        <button class="btn btn-sm btn-warning mr-2 btn-editar" data-id="<span class="math-inline">\{cliente\.id\}"\>Editar</button\>
+<button class\="btn btn\-sm btn\-danger btn\-deletar" data\-id\="</span>{cliente.id}">Deletar</button>
                     </div>
                 `;
                 listaClientesUI.appendChild(item);

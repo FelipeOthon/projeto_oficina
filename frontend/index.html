@@ -56,6 +56,14 @@
                     <button id="btnNovoCliente" class="btn btn-primary">Novo Cliente</button>
                 </header>
                 <main>
+                    <div class="form-row mb-3">
+                        <div class="col">
+                            <input type="text" class="form-control" id="inputBuscaCliente" placeholder="Buscar cliente por nome, email ou CPF/CNPJ...">
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-secondary" id="btnLimparBuscaCliente">Limpar</button>
+                        </div>
+                    </div>
                     <h2>Lista de Clientes</h2>
                     <ul id="lista-clientes" class="list-group">
                         <li class="list-group-item">Carregando clientes...</li>
@@ -332,9 +340,9 @@
                 <div class="modal-body">
                     <form id="formOS">
                         <input type="hidden" id="osId">
-                        <div class="form-group">
-                            <label for="osNumeroOs">Número da OS*</label>
-                            <input type="text" class="form-control" id="osNumeroOs" required>
+                        <div class="form-group" id="osNumeroOsWrapper" style="display: none;">
+                            <label for="osNumeroOs">Número da OS</label>
+                            <input type="text" class="form-control" id="osNumeroOs" readonly>
                         </div>
                         <div class="row">
                             <div class="col-md-6">
@@ -407,7 +415,8 @@
     </div>
 
     <div class="modal fade" id="osDetalhesItensModal" tabindex="-1" role="dialog" aria-labelledby="osDetalhesItensModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl" role="document"> <div class="modal-content">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="osDetalhesItensModalLabel">Detalhes da Ordem de Serviço</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -420,6 +429,9 @@
                         <p>Carregando detalhes da OS...</p>
                     </div>
 
+                    <div class="mb-3 text-center">
+                        <button type="button" class="btn btn-primary" id="btnGerarOsPdf">Gerar PDF da OS</button>
+                    </div>
                     <hr>
 
                     <div class="mb-4">

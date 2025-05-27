@@ -11,8 +11,10 @@ from .views import (
     OrdemDeServicoRetrieveUpdateDestroyAPIView,
     ItemOsPecaListCreateAPIView,
     ItemOsPecaRetrieveUpdateDestroyAPIView,
-    ItemOsServicoListCreateAPIView,  # ADICIONADA VIEW
-    ItemOsServicoRetrieveUpdateDestroyAPIView  # ADICIONADA VIEW
+    ItemOsServicoListCreateAPIView,
+    ItemOsServicoRetrieveUpdateDestroyAPIView,
+    MecanicoListAPIView,
+    OrdemDeServicoPDFView # Importar a nova view
 )
 
 app_name = 'gestao_oficina'
@@ -35,15 +37,20 @@ urlpatterns = [
     path('ordens-servico/', OrdemDeServicoListCreateAPIView.as_view(), name='ordemdeservico-list-create'),
     path('ordens-servico/<int:pk>/', OrdemDeServicoRetrieveUpdateDestroyAPIView.as_view(),
          name='ordemdeservico-detail-update-delete'),
+    # URL para o PDF da Ordem de Serviço
+    path('ordens-servico/<int:pk>/pdf/', OrdemDeServicoPDFView.as_view(), name='ordemdeservico-pdf'), # ADICIONADO
 
     # URLs para Itens de Peças de uma OS específica
     path('ordens-servico/<int:os_pk>/pecas/', ItemOsPecaListCreateAPIView.as_view(), name='itemospeca-list-create'),
     path('ordens-servico/<int:os_pk>/pecas/<int:item_pk>/', ItemOsPecaRetrieveUpdateDestroyAPIView.as_view(),
          name='itemospeca-detail-update-delete'),
 
-    # URLs para Itens de Serviços de uma OS específica (NOVAS)
+    # URLs para Itens de Serviços de uma OS específica
     path('ordens-servico/<int:os_pk>/servicos/', ItemOsServicoListCreateAPIView.as_view(),
          name='itemosservico-list-create'),
     path('ordens-servico/<int:os_pk>/servicos/<int:item_pk>/', ItemOsServicoRetrieveUpdateDestroyAPIView.as_view(),
          name='itemosservico-detail-update-delete'),
+
+    # URL para listar mecânicos
+    path('usuarios/mecanicos/', MecanicoListAPIView.as_view(), name='mecanico-list'),
 ]

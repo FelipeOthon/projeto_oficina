@@ -1,10 +1,8 @@
 // frontend/js/clienteService.js
 import { apiUrlBase } from './apiConfig.js';
-// Importe handleLogout se quiser usá-la aqui em caso de 401.
-// Para isso, handleLogout precisaria ser exportada de main.js
-// import { handleLogout } from './main.js'; // Supondo que main.js exporte handleLogout
+import { handleLogout } from './main.js'; // Certifique-se que handleLogout é exportada de main.js
 
-const clientesUrl = `${apiUrlBase}/clientes/`;
+const clientesUrlBase = `${apiUrlBase}/clientes/`; // Renomeado para clareza
 
 // Função auxiliar para obter headers de autenticação
 function getAuthHeaders() {
@@ -21,14 +19,8 @@ function getAuthHeaders() {
 // Função para lidar com erros de resposta e possível logout em 401
 async function handleResponseError(response) {
     if (response.status === 401) {
-        // Se main.js exportar handleLogout e for importada aqui:
-        // handleLogout();
-        // alert("Sua sessão expirou ou você não está autorizado. Por favor, faça login novamente.");
-        // Ou simplesmente lançar o erro para ser tratado onde a função foi chamada
-        // Para simplificar agora, vamos apenas deixar que o erro seja lançado e a UI lide com não receber dados.
-        // A chamada explícita ao handleLogout aqui pode ser um pouco complexa devido a imports circulares ou
-        // necessidade de tornar handleLogout global.
-        console.warn("Erro 401: Não autorizado. O token pode ter expirado.");
+        console.warn("Erro 401 em clienteService: Não autorizado. Deslogando...");
+        handleLogout(); // Chama a função global de logout
     }
     const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}. Não foi possível obter detalhes do erro.` }));
 
@@ -47,9 +39,14 @@ async function handleResponseError(response) {
     throw new Error(erroMsg);
 }
 
-
-export async function getClientes() {
-    const response = await fetch(clientesUrl, { headers: getAuthHeaders() });
+// Modificada para aceitar um termo de busca
+export async function getClientes(searchTerm = '') {
+    let url = clientesUrlBase;
+    if (searchTerm && searchTerm.trim() !== '') {
+        // O backend espera o parâmetro 'search' para o SearchFilter
+        url += `?search=${encodeURIComponent(searchTerm.trim())}`;
+    }
+    const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
         await handleResponseError(response);
     }
@@ -57,7 +54,7 @@ export async function getClientes() {
 }
 
 export async function getClienteById(clienteId) {
-    const response = await fetch(`${clientesUrl}${clienteId}/`, { headers: getAuthHeaders() });
+    const response = await fetch(`${clientesUrlBase}${clienteId}/`, { headers: getAuthHeaders() });
     if (!response.ok) {
        await handleResponseError(response);
     }
@@ -65,19 +62,19 @@ export async function getClienteById(clienteId) {
 }
 
 export async function createCliente(clienteData) {
-    const response = await fetch(clientesUrl, {
+    const response = await fetch(clientesUrlBase, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify(clienteData),
     });
-    if (!response.ok) { // Espera-se 201 para POST bem-sucedido, mas DRF retorna 201 (que é .ok)
+    if (!response.ok) {
         await handleResponseError(response);
     }
     return await response.json();
 }
 
 export async function updateCliente(clienteId, clienteData) {
-    const response = await fetch(`${clientesUrl}${clienteId}/`, {
+    const response = await fetch(`${clientesUrlBase}${clienteId}/`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(clienteData),
@@ -89,12 +86,12 @@ export async function updateCliente(clienteId, clienteData) {
 }
 
 export async function deleteClienteAPI(clienteId) {
-    const response = await fetch(`${clientesUrl}${clienteId}/`, {
+    const response = await fetch(`${clientesUrlBase}${clienteId}/`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
     });
-    if (!response.ok && response.status !== 204) { // 204 é OK para DELETE
+    if (!response.ok && response.status !== 204) {
         await handleResponseError(response);
     }
-    return true; // DELETE bem-sucedido (204) não tem corpo JSON
+    return true;
 }

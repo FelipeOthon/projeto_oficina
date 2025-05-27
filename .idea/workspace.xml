@@ -5,7 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="6ddb8d25-419f-4653-b538-52ae18089593" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/frontend/js/usuarioService.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/templates/gestao_oficina/pdf/os_pdf_template.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/agendamentoUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/agendamentoUI.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/clienteService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/clienteService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/clienteUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/clienteUI.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -18,14 +29,17 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="HTML File" />
-        <option value="JavaScript File" />
         <option value="Python Script" />
+        <option value="JavaScript File" />
+        <option value="HTML File" />
       </list>
     </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 4
@@ -43,6 +57,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.pycharm.django.structure.promotion.once.per.project": "true",
+    "django.template.preview.state": "SHOW_EDITOR_AND_PREVIEW",
     "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "node.js.detected.package.eslint": "true",
@@ -102,11 +117,24 @@
       <updated>1747928258432</updated>
       <workItem from="1747928259712" duration="7601000" />
       <workItem from="1748003103102" duration="17812000" />
-      <workItem from="1748256562594" duration="25834000" />
+      <workItem from="1748256562594" duration="26110000" />
+      <workItem from="1748347468374" duration="11480000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js</url>
+          <line>544</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

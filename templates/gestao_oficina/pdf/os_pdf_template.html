@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Ordem de Serviço - Nº {{ os.numero_os }}</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .header, .footer { text-align: center; margin-bottom: 20px; }
+        .logo { max-width: 150px; margin-bottom: 10px; } /* Adicione sua logo aqui se tiver */
+        .company-details p, .customer-details p, .vehicle-details p { margin: 2px 0; }
+        h1, h2, h3 { margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;}
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .totals { text-align: right; margin-top: 20px; }
+        .totals p { margin: 5px 0; }
+        .signature-area { margin-top: 50px; }
+        .signature-line { border-bottom: 1px solid #000; width: 250px; margin: 0 auto; margin-top: 40px; }
+        .signature-text { text-align: center; font-size: 0.9em; }
+
+        /* Para xhtml2pdf carregar fontes unicode (como acentos) corretamente */
+        @font-face {
+            font-family: "DejaVu Sans"; /* Pode ser qualquer nome que você escolher */
+            src: url("file:///usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"); /* Caminho para uma fonte .ttf que suporte os caracteres que você precisa. Pode variar no seu sistema. */
+                                                                            /* Para Windows, pode ser C:/Windows/Fonts/Arial.ttf */
+                                                                            /* Você pode precisar instalar uma fonte como DejaVuSans se não tiver */
+        }
+        body {
+            font-family: "DejaVu Sans", sans-serif; /* Use a fonte definida */
+        }
+
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>OFICINAPRO - Comprovante de Ordem de Serviço</h2>
+        <div class="company-details">
+            <p>Rua Fictícia, 123 - Bairro Exemplo - Cidade, UF</p>
+            <p>Telefone: (XX) XXXX-XXXX | Email: contato@oficinapro.com</p>
+        </div>
+    </div>
+
+    <h1>Ordem de Serviço Nº: {{ os.numero_os }}</h1>
+    <p><strong>Data de Entrada:</strong> {{ os.data_entrada|date:"d/m/Y H:i" }}</p>
+    {% if os.data_saida_prevista %}
+        <p><strong>Previsão de Saída:</strong> {{ os.data_saida_prevista|date:"d/m/Y" }}</p>
+    {% endif %}
+    {% if os.data_conclusao %}
+        <p><strong>Data de Conclusão:</strong> {{ os.data_conclusao|date:"d/m/Y H:i" }}</p>
+    {% endif %}
+    <p><strong>Status:</strong> {{ os.get_status_os_display }}</p>
+
+
+    <div class="customer-details">
+        <h3>Dados do Cliente</h3>
+        <p><strong>Nome:</strong> {{ os.cliente.nome_completo }}</p>
+        <p><strong>Telefone:</strong> {{ os.cliente.telefone_principal }}
+            {% if os.cliente.telefone_secundario %}| {{ os.cliente.telefone_secundario }}{% endif %}
+        </p>
+        {% if os.cliente.email %}<p><strong>Email:</strong> {{ os.cliente.email }}</p>{% endif %}
+        {% if os.cliente.cpf_cnpj %}<p><strong>CPF/CNPJ:</strong> {{ os.cliente.cpf_cnpj }}</p>{% endif %}
+        {% if os.cliente.endereco_rua %}
+            <p><strong>Endereço:</strong> {{ os.cliente.endereco_rua }}, {{ os.cliente.endereco_numero }}
+                {% if os.cliente.endereco_complemento %} - {{ os.cliente.endereco_complemento }}{% endif %}
+                 - {{ os.cliente.endereco_bairro }}, {{ os.cliente.endereco_cidade }} - {{ os.cliente.endereco_estado }}
+            </p>
+        {% endif %}
+    </div>
+
+    <div class="vehicle-details">
+        <h3>Dados do Veículo</h3>
+        <p><strong>Placa:</strong> {{ os.veiculo.placa }}</p>
+        <p><strong>Marca/Modelo:</strong> {{ os.veiculo.marca }} / {{ os.veiculo.modelo }}</p>
+        <p><strong>Ano Fab/Mod:</strong> {{ os.veiculo.ano_fabricacao|default:"N/A" }} / {{ os.veiculo.ano_modelo|default:"N/A" }}</p>
+        <p><strong>Cor:</strong> {{ os.veiculo.cor|default:"N/A" }}</p>
+        {% if os.veiculo.chassi %}<p><strong>Chassi:</strong> {{ os.veiculo.chassi }}</p>{% endif %}
+    </div>
+
+    <h3>Problema Relatado pelo Cliente</h3>
+    <p>{{ os.descricao_problema_cliente|linebreaksbr }}</p>
+
+    {% if os.diagnostico_mecanico %}
+        <h3>Diagnóstico do Mecânico</h3>
+        <p>{{ os.diagnostico_mecanico|linebreaksbr }}</p>
+    {% endif %}
+
+    {% if os.itens_pecas.all %}
+        <h3>Peças Utilizadas</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>Qtd.</th>
+                    <th>Valor Unit. (R$)</th>
+                    <th>Valor Total (R$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item_peca in os.itens_pecas.all %}
+                <tr>
+                    <td>{{ item_peca.descricao_peca }}</td>
+                    <td>{{ item_peca.quantidade|floatformat:2 }}</td>
+                    <td>{{ item_peca.valor_unitario|floatformat:2 }}</td>
+                    <td>{{ item_peca.valor_total_item|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    {% if os.itens_servicos.all %}
+        <h3>Serviços Executados</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>Valor (R$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item_servico in os.itens_servicos.all %}
+                <tr>
+                    <td>{{ item_servico.descricao_servico }}</td>
+                    <td>{{ item_servico.valor_servico|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    {% if os.servicos_executados_obs %}
+        <h3>Observações sobre Serviços Executados</h3>
+        <p>{{ os.servicos_executados_obs|linebreaksbr }}</p>
+    {% endif %}
+
+    <div class="totals">
+        <p><strong>Subtotal Peças:</strong> R$ {{ os.valor_total_pecas|floatformat:2 }}</p>
+        <p><strong>Subtotal Serviços:</strong> R$ {{ os.valor_total_servicos|floatformat:2 }}</p>
+        {% if os.valor_desconto > 0 %}
+            <p><strong>Desconto:</strong> R$ {{ os.valor_desconto|floatformat:2 }}</p>
+        {% endif %}
+        <h3><strong>Valor Total da OS: R$ {{ os.valor_total_os|floatformat:2 }}</strong></h3>
+    </div>
+
+    <div class="signature-area">
+        <p>Declaro estar ciente e de acordo com os serviços e valores descritos acima.</p>
+        <br><br>
+        <div class="signature-line"></div>
+        <p class="signature-text">{{ os.cliente.nome_completo }}</p>
+    </div>
+
+    <div class="footer">
+        <p>OficinaPRO - Seu sistema de gestão de oficina!</p>
+        </div>
+</body>
+</html>

@@ -5,6 +5,8 @@ import {
 } from './ordemDeServicoService.js';
 import { getClientes } from './clienteService.js';
 import { getVeiculos } from './veiculoService.js';
+import { getMecanicos } from './usuarioService.js';
+import { apiUrlBase } from './apiConfig.js';
 import {
     createItemOsPeca, getItemOsPecaById, updateItemOsPeca, deleteItemOsPecaAPI
 } from './itemOsPecaService.js';
@@ -37,7 +39,7 @@ const formItemServico = document.getElementById('formItemServico');
 const itemServicoOsIdInput = document.getElementById('itemServicoOsId');
 const itemServicoIdInput = document.getElementById('itemServicoId');
 
-let osAtualIdParaItens = null; // Guarda o ID da OS ativa no modal de detalhes
+let osAtualIdParaItens = null;
 
 export async function populateClientesParaOS(selectedClienteId = null) {
     if (!osClienteSelect) { return; }
@@ -82,6 +84,37 @@ export async function populateVeiculosParaOS(clienteId, selectedVeiculoId = null
     } catch (error) { console.error('Erro ao popular veículos para OS:', error); osVeiculoSelect.innerHTML = '<option value="">Erro ao carregar</option>';}
 }
 
+export async function populateMecanicosParaOSDropdown(selectedMecanicoId = null) {
+    if (!osMecanicoSelect) {
+        console.error("Elemento #osMecanicoResponsavel não encontrado para popular mecânicos.");
+        return;
+    }
+    try {
+        console.log("[ordemDeServicoUI.js] Buscando mecânicos para dropdown de OS...");
+        const mecanicos = await getMecanicos();
+        osMecanicoSelect.innerHTML = '<option value="">Selecione um Mecânico (Opcional)...</option>';
+        if (Array.isArray(mecanicos) && mecanicos.length > 0) {
+            mecanicos.forEach(mecanico => {
+                const option = document.createElement('option');
+                option.value = mecanico.id;
+                option.textContent = mecanico.nome_display || mecanico.username;
+                if (selectedMecanicoId && mecanico.id === parseInt(selectedMecanicoId)) {
+                    option.selected = true;
+                }
+                osMecanicoSelect.appendChild(option);
+            });
+            console.log("[ordemDeServicoUI.js] Dropdown de mecânicos para OS populado.");
+        } else {
+            console.log("[ordemDeServicoUI.js] Nenhum mecânico encontrado para OS.");
+            osMecanicoSelect.innerHTML = '<option value="">Nenhum mecânico disponível</option>';
+        }
+    } catch (error) {
+        console.error('Erro ao popular dropdown de mecânicos para OS:', error);
+        osMecanicoSelect.innerHTML = '<option value="">Erro ao carregar mecânicos</option>';
+    }
+}
+
+
 async function configurarModalOS(modo, osData = null) {
     if (!formOS || !osIdInput || !osModalLabel || !osModal.length || !btnSalvarOSModal) {
         console.error("Elementos do modal OS principal não foram encontrados."); return;
@@ -91,17 +124,25 @@ async function configurarModalOS(modo, osData = null) {
     const camposForm = formOS.elements;
     let tituloModal = '';
 
+    const osNumeroOsInput = document.getElementById('osNumeroOs');
+    const osNumeroOsWrapper = document.getElementById('osNumeroOsWrapper');
+
+    await populateMecanicosParaOSDropdown(osData ? osData.mecanico_responsavel : null);
+
     if (modo === 'novo') {
         tituloModal = 'Adicionar Nova Ordem de Serviço';
         await populateClientesParaOS();
         if(osVeiculoSelect) osVeiculoSelect.innerHTML = '<option value="">Selecione cliente</option>';
+        if (osNumeroOsWrapper) osNumeroOsWrapper.style.display = 'none';
+        if (osNumeroOsInput) osNumeroOsInput.value = '';
     } else if (modo === 'editar') {
         tituloModal = 'Editar Ordem de Serviço';
+        if (osNumeroOsWrapper) osNumeroOsWrapper.style.display = 'block';
+        if (osNumeroOsInput && osData) osNumeroOsInput.value = osData.numero_os || '';
+
         if (osData) {
             await populateClientesParaOS(osData.cliente);
             await populateVeiculosParaOS(osData.cliente, osData.veiculo);
-            if(document.getElementById('osNumeroOs')) document.getElementById('osNumeroOs').value = osData.numero_os || '';
-            if(document.getElementById('osMecanicoResponsavel')) document.getElementById('osMecanicoResponsavel').value = osData.mecanico_responsavel || "";
             if(document.getElementById('osDataSaidaPrevista')) document.getElementById('osDataSaidaPrevista').value = osData.data_saida_prevista || '';
             if(document.getElementById('osDescricaoProblemaCliente')) document.getElementById('osDescricaoProblemaCliente').value = osData.descricao_problema_cliente || '';
             if(document.getElementById('osDiagnosticoMecanico')) document.getElementById('osDiagnosticoMecanico').value = osData.diagnostico_mecanico || '';
@@ -111,9 +152,18 @@ async function configurarModalOS(modo, osData = null) {
             if(document.getElementById('osObservacoesInternas')) document.getElementById('osObservacoesInternas').value = osData.observacoes_internas || '';
         }
     }
-    for (let campo of camposForm) { if (campo.type !== 'hidden' && campo.type !== 'button') campo.disabled = false; }
+
+    for (let campo of camposForm) {
+        if (campo.id !== 'osNumeroOs' && campo.type !== 'hidden' && campo.type !== 'button') {
+            campo.disabled = false;
+        }
+    }
+    if (osNumeroOsInput) osNumeroOsInput.readOnly = true;
+
     if (osClienteSelect) osClienteSelect.disabled = false;
     if (osVeiculoSelect) osVeiculoSelect.disabled = false;
+    if (osMecanicoSelect) osMecanicoSelect.disabled = false;
+
     btnSalvarOSModal.style.display = 'inline-block';
     osModalLabel.textContent = tituloModal;
     osModal.modal('show');
@@ -137,7 +187,7 @@ export async function renderOrdensDeServico() {
                     <div>
                         <strong>OS Nº: ${os.numero_os}</strong> - Cliente: ${os.cliente_nome || 'N/A'}<br>
                         <small>Veículo: ${os.veiculo_info || 'N/A'} | Entrada: ${dataEntradaF}</small><br>
-                        <small>Status: ${os.status_os} | Total: R$ ${valorTotalOS}</small><br>
+                        <small>Status: ${os.status_os} | Mecânico: ${os.mecanico_nome || 'Não atribuído'} | Total: R$ ${valorTotalOS}</small><br>
                         <small>Peças: ${numPecas} item(s) | Serviços: ${numServicos} item(s)</small>
                     </div>
                     <div class="mt-2">
@@ -159,11 +209,12 @@ export async function abrirModalEditarOS(id) {
         await configurarModalOS('editar', os);
     } catch (error) { console.error('Erro ao carregar OS para edição:', error); alert(`Erro: ${error.message}`); }
 }
+
 export async function handleSalvarOS() {
     if (!formOS || !osIdInput) return;
     const id = osIdInput.value;
+
     const dadosOS = {
-        numero_os: document.getElementById('osNumeroOs')?.value,
         cliente: document.getElementById('osCliente')?.value,
         veiculo: document.getElementById('osVeiculo')?.value,
         mecanico_responsavel: document.getElementById('osMecanicoResponsavel')?.value || null,
@@ -175,12 +226,24 @@ export async function handleSalvarOS() {
         status_os: document.getElementById('osStatus')?.value,
         observacoes_internas: document.getElementById('osObservacoesInternas')?.value || null,
     };
-    if (!dadosOS.numero_os || !dadosOS.cliente || !dadosOS.veiculo || !dadosOS.descricao_problema_cliente || !dadosOS.status_os) {
-        alert('Campos obrigatórios da OS não preenchidos!'); return;
+
+    if (id) {
+        dadosOS.numero_os = document.getElementById('osNumeroOs')?.value;
     }
+
+    if (!dadosOS.cliente || !dadosOS.veiculo || !dadosOS.descricao_problema_cliente || !dadosOS.status_os) {
+        alert('Cliente, Veículo, Descrição do Problema e Status são obrigatórios!');
+        return;
+    }
+
     try {
-        if (id) { await updateOrdemDeServico(id, dadosOS); alert('OS atualizada!'); }
-        else { await createOrdemDeServico(dadosOS); alert('OS criada!'); }
+        if (id) {
+            await updateOrdemDeServico(id, dadosOS);
+            alert('OS atualizada!');
+        } else {
+            await createOrdemDeServico(dadosOS);
+            alert('OS criada!');
+        }
         if(osModal.length) osModal.modal('hide');
         renderOrdensDeServico();
     } catch (error) { console.error('Erro ao salvar OS:', error); alert(`Erro: ${error.message}`); }
@@ -193,7 +256,6 @@ export async function handleDeletarOS(id) {
     }
 }
 
-// --- GERENCIAMENTO DE ITENS DE PEÇA ---
 export function abrirModalAdicionarPeca(osId) {
     if (!formItemPeca || !itemPecaOsIdInput || !itemPecaIdInput || !itemPecaModalLabelElement || !itemPecaModalElement.length) { console.error("Elementos do modal Item Peça não encontrados."); return; }
     formItemPeca.reset();
@@ -241,7 +303,7 @@ export async function handleSalvarItemPeca() {
         if (itemId) { await updateItemOsPeca(osId, itemId, dados); alert('Peça atualizada!'); }
         else { await createItemOsPeca(osId, dados); alert('Peça adicionada!'); }
         if(itemPecaModalElement.length) itemPecaModalElement.modal('hide');
-        if (osAtualIdParaItens) await handleVerDetalhesOS(osAtualIdParaItens); // Usa a variável de módulo
+        if (osAtualIdParaItens) await handleVerDetalhesOS(osAtualIdParaItens);
         await renderOrdensDeServico();
     } catch (e) { console.error('Erro ao salvar peça:', e); alert(`Erro: ${e.message}`); }
 }
@@ -250,13 +312,12 @@ export async function handleDeletarItemPeca(osId, itemId) {
     if (confirm(`Deletar peça ID: ${itemId} da OS Nº ${osId}?`)) {
         try {
             await deleteItemOsPecaAPI(osId, itemId); alert('Peça deletada!');
-            if (osAtualIdParaItens) await handleVerDetalhesOS(osAtualIdParaItens); // Usa a variável de módulo
+            if (osAtualIdParaItens) await handleVerDetalhesOS(osAtualIdParaItens);
             await renderOrdensDeServico();
         } catch (e) { console.error('Erro ao deletar peça:', e); alert(`Erro: ${e.message}`); }
     }
 }
 
-// --- FUNÇÕES PARA GERENCIAR ITENS DE SERVIÇO ---
 export function abrirModalAdicionarServico(osId) {
     if (!formItemServico || !itemServicoOsIdInput || !itemServicoIdInput || !itemServicoModalLabelElement || !itemServicoModalElement.length) { return; }
     formItemServico.reset();
@@ -302,7 +363,7 @@ export async function handleSalvarItemServico() {
         if (itemId) { await updateItemOsServico(osId, itemId, dados); alert('Serviço atualizado!'); }
         else { await createItemOsServico(osId, dados); alert('Serviço adicionado!'); }
         if(itemServicoModalElement.length) itemServicoModalElement.modal('hide');
-        if (osAtualIdParaItens) await handleVerDetalhesOS(osAtualIdParaItens); // Usa a variável de módulo
+        if (osAtualIdParaItens) await handleVerDetalhesOS(osAtualIdParaItens);
         await renderOrdensDeServico();
     } catch (e) { console.error('Erro ao salvar serviço:', e); alert(`Erro: ${e.message}`); }
 }
@@ -311,17 +372,59 @@ export async function handleDeletarItemServico(osId, itemId) {
     if (confirm(`Deletar serviço ID: ${itemId} da OS Nº ${osId}?`)) {
         try {
             await deleteItemOsServicoAPI(osId, itemId); alert('Serviço deletado!');
-            if (osAtualIdParaItens) await handleVerDetalhesOS(osAtualIdParaItens); // Usa a variável de módulo
+            if (osAtualIdParaItens) await handleVerDetalhesOS(osAtualIdParaItens);
             await renderOrdensDeServico();
         } catch (e) { console.error('Erro ao deletar serviço:', e); alert(`Erro: ${e.message}`); }
     }
 }
 
-// --- FUNÇÃO HANDLEVERDETALHESOS ---
+async function fetchAndOpenPdf(osId) {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        alert('Token de autenticação não encontrado. Faça login novamente.');
+        return;
+    }
+
+    const pdfUrl = `${apiUrlBase}/ordens-servico/${osId}/pdf/`;
+
+    try {
+        const response = await fetch(pdfUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            }
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            if (blob.type === "application/pdf") {
+                const fileURL = URL.createObjectURL(blob);
+                window.open(fileURL, '_blank');
+            } else {
+                console.error('A resposta não foi um PDF. Tipo recebido:', blob.type);
+                alert('Erro: O servidor não retornou um arquivo PDF.');
+            }
+        } else {
+            let errorMessage = `Erro ao gerar PDF: ${response.status} ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData?.detail || errorMessage;
+            } catch (e) {
+                // Não conseguiu parsear JSON, usa a mensagem de status
+            }
+            console.error('Erro ao buscar PDF:', errorMessage);
+            alert(errorMessage);
+        }
+    } catch (error) {
+        console.error('Erro de rede ou ao processar PDF:', error);
+        alert(`Erro ao gerar PDF: ${error.message}`);
+    }
+}
+
+
 export async function handleVerDetalhesOS(id) {
     console.log('[ordemDeServicoUI.js] -> handleVerDetalhesOS - ID recebido:', id);
 
-    // Define as constantes dos elementos do modal de detalhes AQUI DENTRO
     const osDetalhesModalElem = $('#osDetalhesItensModal');
     const osDetalhesConteudoElem = document.getElementById('osDetalhesConteudo');
     const osDetalhesItensPecasElem = document.getElementById('osDetalhesItensPecas');
@@ -329,17 +432,18 @@ export async function handleVerDetalhesOS(id) {
     const osDetalhesModalLabelElem = document.getElementById('osDetalhesItensModalLabel');
 
     if (!osDetalhesConteudoElem || !osDetalhesItensPecasElem || !osDetalhesItensServicosElem || !osDetalhesModalElem.length || !osDetalhesModalLabelElem) {
-        alert("Elementos do modal de detalhes da OS não encontrados no HTML. Verifique os IDs.");
-        console.error("Elementos do modal de detalhes da OS não encontrados. Verifique os IDs no HTML.");
+        alert("Elementos básicos do modal de detalhes da OS não encontrados no HTML.");
+        console.error("Elementos básicos do modal de detalhes da OS não encontrados.");
         return;
     }
+
     osAtualIdParaItens = id;
     try {
         const os = await getOrdemDeServicoById(id);
         if (!os) { alert(`Ordem de Serviço com ID ${id} não encontrada.`); return; }
-        osDetalhesConteudoElem.innerHTML = 'Carregando...';
-        osDetalhesItensPecasElem.innerHTML = '<h6>Peças:</h6>';
-        osDetalhesItensServicosElem.innerHTML = '<h6>Serviços:</h6>';
+
+        osDetalhesItensPecasElem.innerHTML = '<h6>Peças Utilizadas</h6>';
+        osDetalhesItensServicosElem.innerHTML = '<h6>Serviços Executados</h6>';
 
         const dataEntradaF = os.data_entrada ? new Date(os.data_entrada).toLocaleString('pt-BR', {dateStyle: 'short', timeStyle: 'short'}) : 'N/A';
         const dataSaidaF = os.data_saida_prevista ? new Date(os.data_saida_prevista+'T00:00:00').toLocaleDateString('pt-BR') : 'N/A';
@@ -380,6 +484,7 @@ export async function handleVerDetalhesOS(id) {
             os.itens_pecas.forEach(peca => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                // CORREÇÃO APLICADA: Usar crases para template literal corretamente
                 li.innerHTML = `
                     <span>${peca.quantidade}x ${peca.descricao_peca} - R$ ${parseFloat(peca.valor_unitario).toFixed(2)} (Total: R$ ${parseFloat(peca.valor_total_item).toFixed(2)})</span>
                     <div>
@@ -395,6 +500,7 @@ export async function handleVerDetalhesOS(id) {
             os.itens_servicos.forEach(servico => {
                 const li = document.createElement('li');
                 li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                // CORREÇÃO APLICADA: Usar crases para template literal corretamente
                 li.innerHTML = `
                     <span>${servico.descricao_servico} - R$ ${parseFloat(servico.valor_servico).toFixed(2)}</span>
                     <div>
@@ -406,8 +512,32 @@ export async function handleVerDetalhesOS(id) {
             });
         } else { osDetalhesItensServicosElem.innerHTML += '<li class="list-group-item">Nenhum serviço adicionado.</li>'; }
 
+        const btnGerarOsPdfElemCurrent = document.getElementById('btnGerarOsPdf');
+        if (btnGerarOsPdfElemCurrent) {
+            // Definir a função handler fora para poder referenciá-la na remoção, se necessário
+            // Embora a técnica de cloneNode/replaceChild seja mais direta para limpar todos os listeners.
+            const pdfButtonClickHandler = () => {
+                fetchAndOpenPdf(id);
+            };
+
+            // Técnica de clonar e substituir para limpar listeners antigos e garantir um novo
+            const newBtn = btnGerarOsPdfElemCurrent.cloneNode(true);
+            if (btnGerarOsPdfElemCurrent.parentNode) {
+                btnGerarOsPdfElemCurrent.parentNode.replaceChild(newBtn, btnGerarOsPdfElemCurrent);
+                newBtn.addEventListener('click', pdfButtonClickHandler);
+            } else {
+                 console.warn("Botão Gerar PDF (btnGerarOsPdf) não tem um nó pai no DOM ao configurar o listener.");
+                 // Fallback: Adiciona ao botão original se o replaceChild falhar,
+                 // Isso pode levar a múltiplos listeners se o modal for reaberto muitas vezes e o cloneNode falhar.
+                 btnGerarOsPdfElemCurrent.addEventListener('click', pdfButtonClickHandler);
+            }
+        } else {
+            console.warn("Botão Gerar PDF (btnGerarOsPdf) não foi encontrado no DOM ao configurar o listener.");
+        }
+
         if (osDetalhesModalLabelElem) osDetalhesModalLabelElem.textContent = `Detalhes da OS Nº: ${os.numero_os}`;
         osDetalhesModalElem.modal('show');
+
     } catch (error) {
         console.error('Erro ao carregar detalhes da Ordem de Serviço:', error);
         alert(`Erro ao carregar detalhes da OS: ${error.message}`);
