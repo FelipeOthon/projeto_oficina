@@ -8,14 +8,17 @@ const modalLabel = document.getElementById('clienteModalLabel');
 const clienteModal = $('#clienteModal'); // jQuery para o modal Bootstrap
 const btnSalvarClienteModal = document.getElementById('btnSalvarCliente');
 
-// Elementos para a busca de clientes
-const inputBuscaCliente = document.getElementById('inputBuscaCliente');
-const btnLimparBuscaCliente = document.getElementById('btnLimparBuscaCliente');
-
-let debounceTimer; // Variável para o debounce
+// REMOVIDO: As linhas abaixo são redundantes pois a busca agora é global e gerenciada por main.js
+// const inputBuscaCliente = document.getElementById('inputBuscaCliente');
+// const btnLimparBuscaCliente = document.getElementById('btnLimparBuscaCliente');
+// let debounceTimer;
 
 // Função auxiliar para configurar o modo do formulário e modal de Cliente
 function configurarModalCliente(modo, clienteData = null) {
+    if (!formCliente || !clienteIdInput || !modalLabel || !clienteModal.length) {
+        console.error("Elementos essenciais do modal do cliente não foram encontrados.");
+        return;
+    }
     formCliente.reset();
     clienteIdInput.value = clienteData ? clienteData.id : '';
 
@@ -60,6 +63,7 @@ function configurarModalCliente(modo, clienteData = null) {
             }
         }
         if (clienteData) {
+            // Preenche os campos para visualização (similar ao modo editar)
             document.getElementById('nomeCompleto').value = clienteData.nome_completo || '';
             document.getElementById('telefonePrincipal').value = clienteData.telefone_principal || '';
             document.getElementById('telefoneSecundario').value = clienteData.telefone_secundario || '';
@@ -83,20 +87,21 @@ function configurarModalCliente(modo, clienteData = null) {
 }
 
 
-// Função para renderizar a lista de clientes no HTML - MODIFICADA para aceitar searchTerm
+// Função para renderizar a lista de clientes no HTML
 export async function renderClientes(searchTerm = '') {
-    if (!listaClientesUI) return;
+    if (!listaClientesUI) {
+        console.warn("Elemento #lista-clientes não encontrado para renderizar.");
+        return;
+    }
     listaClientesUI.innerHTML = '<li class="list-group-item">Carregando clientes...</li>';
     try {
-        // Passa o searchTerm para getClientes
         const clientes = await getClientes(searchTerm);
-        listaClientesUI.innerHTML = ''; // Limpa a lista antes de adicionar novos itens
+        listaClientesUI.innerHTML = '';
 
         if (Array.isArray(clientes) && clientes.length > 0) {
             clientes.forEach(cliente => {
                 const item = document.createElement('li');
                 item.className = 'list-group-item d-flex justify-content-between align-items-center';
-                // Corrigido o template string para interpolação correta
                 item.innerHTML = `
                     <div>
                         <strong>${cliente.nome_completo}</strong><br>
@@ -152,6 +157,7 @@ export async function handleVerDetalhesCliente(id) {
 }
 
 export async function handleSalvarCliente() {
+    if (!formCliente || !clienteIdInput || !clienteModal.length) return;
     const id = clienteIdInput.value;
     const dadosCliente = {
         nome_completo: document.getElementById('nomeCompleto').value,
@@ -173,6 +179,9 @@ export async function handleSalvarCliente() {
         return;
     }
 
+    // Pega o campo de busca global no momento do uso
+    const inputBuscaGlobal = document.getElementById('inputBuscaGlobal');
+
     try {
         if (id) {
             await updateCliente(id, dadosCliente);
@@ -182,8 +191,9 @@ export async function handleSalvarCliente() {
             alert('Cliente criado com sucesso!');
         }
         clienteModal.modal('hide');
-        // Ao salvar, renderiza a lista com o termo de busca atual (se houver) ou a lista completa
-        renderClientes(inputBuscaCliente.value);
+        // Atualiza a lista de clientes usando o valor ATUAL do input de busca global
+        // Se o inputBuscaGlobal não for encontrado, renderiza sem filtro (string vazia)
+        renderClientes(inputBuscaGlobal ? inputBuscaGlobal.value : '');
     } catch (error) {
         console.error('Erro ao salvar cliente:', error);
         alert(`Erro ao salvar cliente: ${error.message}`);
@@ -192,12 +202,15 @@ export async function handleSalvarCliente() {
 
 export async function handleDeletarCliente(id) {
     console.log('[clienteUI.js] -> handleDeletarCliente - ID recebido:', id, '- Tipo:', typeof id);
+    // Pega o campo de busca global no momento do uso
+    const inputBuscaGlobal = document.getElementById('inputBuscaGlobal');
+
     if (confirm(`Tem certeza que deseja deletar o cliente com ID: ${id}? Esta ação não pode ser desfeita.`)) {
         try {
             await deleteClienteAPI(id);
             alert('Cliente deletado com sucesso!');
-            // Ao deletar, renderiza a lista com o termo de busca atual (se houver) ou a lista completa
-            renderClientes(inputBuscaCliente.value);
+            // Atualiza a lista de clientes usando o valor ATUAL do input de busca global
+            renderClientes(inputBuscaGlobal ? inputBuscaGlobal.value : '');
         } catch (error) {
             console.error('Erro ao deletar cliente:', error);
             alert(`Erro ao deletar cliente: ${error.message}`);
@@ -205,34 +218,32 @@ export async function handleDeletarCliente(id) {
     }
 }
 
-// --- LÓGICA PARA BUSCA DE CLIENTES ---
+// REMOVIDO: A lógica de busca específica para clientes abaixo é redundante
+// pois a busca global é gerenciada por main.js.
 
-// Função para lidar com a busca de clientes
-function realizarBuscaClientes() {
-    const termoBusca = inputBuscaCliente.value.trim();
-    renderClientes(termoBusca);
-}
+// // --- LÓGICA PARA BUSCA DE CLIENTES ---
+// // Função para lidar com a busca de clientes
+// function realizarBuscaClientes() {
+//     const termoBusca = inputBuscaCliente.value.trim();
+//     renderClientes(termoBusca);
+// }
 
-// Event listener para o input de busca (com debounce)
-if (inputBuscaCliente) {
-    inputBuscaCliente.addEventListener('keyup', () => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(realizarBuscaClientes, 500); // Espera 500ms após o usuário parar de digitar
-    });
-}
+// // Event listener para o input de busca (com debounce)
+// if (inputBuscaCliente) {
+//     inputBuscaCliente.addEventListener('keyup', () => {
+//         clearTimeout(debounceTimer);
+//         debounceTimer = setTimeout(realizarBuscaClientes, 500);
+//     });
+// }
 
-// Event listener para o botão de limpar busca
-if (btnLimparBuscaCliente) {
-    btnLimparBuscaCliente.addEventListener('click', () => {
-        inputBuscaCliente.value = ''; // Limpa o campo de busca
-        renderClientes(); // Renderiza todos os clientes
-    });
-}
+// // Event listener para o botão de limpar busca
+// if (btnLimparBuscaCliente) {
+//     btnLimparBuscaCliente.addEventListener('click', () => {
+//         inputBuscaCliente.value = '';
+//         renderClientes();
+//     });
+// }
 
-// Inicialização: Carrega todos os clientes ao carregar a página
-// Certifique-se que main.js chama renderClientes após o login/inicialização da UI principal.
-// Se renderClientes já é chamada em main.js, essa chamada aqui pode ser redundante ou
-// pode ser a principal se não houver outra.
-// document.addEventListener('DOMContentLoaded', () => {
-// renderClientes(); // Se precisar carregar na inicialização deste módulo especificamente.
-// });
+// // Inicialização:
+// // A chamada para renderClientes() agora é feita pelo main.js ao selecionar a aba "Clientes"
+// // ou após o login.
