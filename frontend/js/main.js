@@ -60,7 +60,8 @@ const placeholdersBusca = {
     os: "Buscar OS por número, cliente, veículo, status, problema, diagnóstico ou mecânico..."
 };
 
-async function verifyTokenAndGetUserData(token) {
+// usernameFromForm: o username digitado no formulário de login ou pego do localStorage na carga inicial
+async function verifyTokenAndGetUserData(token, usernameFromContext = null) {
     if (!token) {
         console.log("verifyTokenAndGetUserData: Nenhum token fornecido.");
         return null;
@@ -69,57 +70,45 @@ async function verifyTokenAndGetUserData(token) {
         const payload = JSON.parse(atob(token.split('.')[1]));
         console.log("verifyTokenAndGetUserData: Payload do token decodificado:", payload);
 
-        const usernameFromPayload = payload.user_id; // SIMPLE JWT USA user_id por padrão.
-                                                    // Se você customizou o token para ter 'username', use payload.username
+        const userIdFromPayload = payload.user_id;
 
-        if (usernameFromPayload === undefined) { // Checa se user_id (ou username) existe no payload
-            console.error("verifyTokenAndGetUserData: 'user_id' (ou 'username') não encontrado no payload do token.");
+        if (userIdFromPayload === undefined) {
+            console.error("verifyTokenAndGetUserData: 'user_id' não encontrado no payload do token.");
             return { tokenValid: false, username: undefined, userType: undefined };
         }
 
-        // Para exibição, idealmente teríamos o username. Se payload.username não existe,
-        // e user_id é um número, precisaremos de outra forma de obter o username real para exibição.
-        // Por agora, se payload.username não existir, usernameForDisplay será o user_id.
-        const usernameForDisplay = payload.username || String(usernameFromPayload);
+        // Se payload.username existir, usa ele. Senão, usa o username do contexto (login/storage).
+        // Como último recurso, usa o user_id como string.
+        const usernameForDisplay = payload.username || usernameFromContext || String(userIdFromPayload);
 
+        // !!!!! LÓGICA SIMPLIFICADA PARA DETERMINAR ADMIN PELO user_id !!!!!
+        // Assumindo que o usuário admin "felipeothon" tem user_id = 1
+        const userType = (userIdFromPayload === 1) ? 'admin' : 'mecanico';
 
-        // !!!!! IMPORTANTE: LÓGICA PARA DETERMINAR ADMIN !!!!!
-        // Se você usa 'felipeothon' como username do admin, E 'username' está no payload:
-        // const userType = (payload.username === 'felipeothon') ? 'admin' : 'mecanico';
-        // SE você usa o user_id e sabe que o user_id do admin 'felipeothon' é 1:
-        const userType = (payload.user_id === 1 && payload.username === 'felipeothon') ? 'admin' : 'mecanico'; // AJUSTE CONFORME SEU CASO
+        console.log(`verifyTokenAndGetUserData: User ID do payload: ${userIdFromPayload}, Username para display: ${usernameForDisplay}, UserType determinado: ${userType}`);
 
-        console.log(`verifyTokenAndGetUserData: Username/ID do payload: ${usernameFromPayload}, Username para display: ${usernameForDisplay}, UserType determinado: ${userType}`);
-
-        // Validação do token no backend (RECOMENDADO, mas opcional por agora para simplificar)
-        /*
-        try {
-            const verifyResponse = await fetch(`${apiUrlBase}/token/verify/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: token })
-            });
-            if (!verifyResponse.ok) {
-                const errorData = await verifyResponse.json();
-                console.warn("verifyTokenAndGetUserData: A verificação do token no backend falhou.", errorData);
-                // Mesmo se a verificação falhar (ex: token expirado), ainda retornamos os dados decodificados
-                // para que handleLogout possa limpar o localStorage, mas marcamos como tokenValid: false.
-                return { username: usernameForDisplay, userType, tokenValid: false };
-            }
-            console.log("verifyTokenAndGetUserData: Token verificado com sucesso no backend.");
-            return { username: usernameForDisplay, userType, tokenValid: true };
-        } catch (verifyError) {
-            console.error("verifyTokenAndGetUserData: Erro ao tentar verificar token no backend:", verifyError);
-            return { username: usernameForDisplay, userType, tokenValid: false };
-        }
-        */
-       // Sem a chamada de verificação explícita acima, assumimos que a decodificação é o suficiente por agora.
-       // Mas um token decodificável PODE estar expirado.
+        // Validação do token no backend (RECOMENDADO)
+        // try {
+        //     const verifyResponse = await fetch(`${apiUrlBase}/token/verify/`, {
+        //         method: 'POST',
+        //         headers: { 'Content-Type': 'application/json' },
+        //         body: JSON.stringify({ token: token })
+        //     });
+        //     if (!verifyResponse.ok) {
+        //         console.warn("verifyTokenAndGetUserData: A verificação do token no backend falhou (ex: expirado).");
+        //         return { username: usernameForDisplay, userType, tokenValid: false };
+        //     }
+        //     console.log("verifyTokenAndGetUserData: Token verificado com sucesso no backend.");
+        //     return { username: usernameForDisplay, userType, tokenValid: true };
+        // } catch (verifyError) {
+        //     console.error("verifyTokenAndGetUserData: Erro ao tentar verificar token no backend:", verifyError);
+        //     return { username: usernameForDisplay, userType, tokenValid: false };
+        // }
+        // Por ora, sem a chamada de verificação explícita:
         return { username: usernameForDisplay, userType, tokenValid: true };
 
-
     } catch (e) {
-        console.error("verifyTokenAndGetUserData: Erro ao decodificar token ou token já inválido (malformado/corrompido):", e);
+        console.error("verifyTokenAndGetUserData: Erro ao decodificar token ou token já inválido:", e);
         return { tokenValid: false, username: undefined, userType: undefined };
     }
 }
@@ -129,7 +118,7 @@ async function handleLogin(event) {
     event.preventDefault();
     const usernameInput = document.getElementById('loginUsername');
     const passwordInput = document.getElementById('loginPassword');
-    const usernameVal = usernameInput.value;
+    const usernameVal = usernameInput.value; // Username digitado no formulário
     const password = passwordInput.value;
 
     if (loginErrorDiv) loginErrorDiv.style.display = 'none';
@@ -148,10 +137,12 @@ async function handleLogin(event) {
             localStorage.setItem('refresh_token', data.refresh);
             console.log("Tokens salvos no localStorage após login.");
 
-            const userData = await verifyTokenAndGetUserData(data.access);
+            // Passa o usernameVal (o nome de usuário do formulário) para verifyTokenAndGetUserData
+            // para que ele possa ser usado como usernameForDisplay se o token não tiver payload.username
+            const userData = await verifyTokenAndGetUserData(data.access, usernameVal);
 
-            if (userData && userData.tokenValid && userData.username) { // userData.username é o usernameForDisplay
-                localStorage.setItem('username', userData.username);
+            if (userData && userData.tokenValid && userData.username) {
+                localStorage.setItem('username', userData.username); // Salva o usernameForDisplay
                 localStorage.setItem('user_type', userData.userType);
                 console.log(`Login bem-sucedido. Username: ${userData.username}, UserType: ${userData.userType} salvos no localStorage.`);
 
@@ -211,7 +202,7 @@ function showLoginScreen() {
     if(adminPanelSection) adminPanelSection.style.display = 'none';
     const adminUsuariosOption = document.querySelector("#selectTipoBusca option[value='admin_usuarios']");
     if (adminUsuariosOption) adminUsuariosOption.remove();
-    if(selectTipoBusca && selectTipoBusca.options.length > 0) { // Garante que há opções antes de tentar definir o valor
+    if(selectTipoBusca && selectTipoBusca.options.length > 0) {
         selectTipoBusca.value = 'clientes';
     }
     atualizarPlaceholderBuscaGlobal();
@@ -222,7 +213,7 @@ async function loadInitialData(tipo = 'clientes', searchTerm = '') {
     const currentUsername = localStorage.getItem('username');
     const currentUserType = localStorage.getItem('user_type');
 
-    if (!token || currentUsername === null || currentUserType === null) { // Checa explicitamente por null se username/userType não forem achados
+    if (!token || currentUsername === null || currentUserType === null) {
         console.warn("loadInitialData: Token, username ou userType ausentes do localStorage. Deslogando.");
         handleLogout();
         return;
@@ -248,8 +239,9 @@ async function loadInitialData(tipo = 'clientes', searchTerm = '') {
              console.log("loadInitialData: Carregando listas adicionais em paralelo (carga inicial e tela principal visível).");
              const promises = [renderVeiculos(), renderAgendamentos(), renderOrdensDeServico()];
              if (currentUserType === 'admin') {
-                // Evita chamar renderAdminUsuarios duas vezes se a aba já for admin_usuarios
                 if (selectTipoBusca && selectTipoBusca.value !== 'admin_usuarios') {
+                    promises.push(renderAdminUsuarios());
+                } else if (!selectTipoBusca) {
                     promises.push(renderAdminUsuarios());
                 }
              }
@@ -316,10 +308,6 @@ function setupBuscaGlobalListeners() {
 }
 
 function setupCommonEventListeners() {
-    // ... (todos os seus event listeners para botões de CRUD etc. permanecem aqui) ...
-    // Certifique-se que os listeners para 'btnNovoUsuarioAdmin', 'btnSalvarAdminUsuario',
-    // e 'btnSalvarNovaSenhaMecanico' estão aqui e corretos.
-
     const btnNovoCliente = document.getElementById('btnNovoCliente');
     if (btnNovoCliente) btnNovoCliente.addEventListener('click', abrirModalNovoCliente);
     const btnSalvarCliente = document.getElementById('btnSalvarCliente');
@@ -468,7 +456,7 @@ async function setupApplicationAfterLogin() {
         if (adminUsuariosOption) adminUsuariosOption.remove();
     }
 
-    atualizarPlaceholderBuscaGlobal(); // Atualiza o placeholder DEPOIS de mexer nas options
+    atualizarPlaceholderBuscaGlobal();
 
     const tipoBuscaInicial = selectTipoBusca ? selectTipoBusca.value : 'clientes';
     console.log("Carregando dados iniciais para a aba selecionada:", tipoBuscaInicial);
@@ -487,11 +475,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const token = localStorage.getItem('access_token');
     if (token) {
         console.log("Token encontrado no localStorage na carga inicial. Verificando...");
-        const userData = await verifyTokenAndGetUserData(token);
+        const usernameFromStorage = localStorage.getItem('username'); // Pega username se já existir
+        const userData = await verifyTokenAndGetUserData(token, usernameFromStorage);
 
         if (userData && userData.tokenValid && userData.username) {
-            localStorage.setItem('username', userData.username); // Garante que username está atualizado
-            localStorage.setItem('user_type', userData.userType); // Garante que userType está atualizado
+            localStorage.setItem('username', userData.username);
+            localStorage.setItem('user_type', userData.userType);
             console.log("Token verificado na carga inicial. Username e UserType definidos/confirmados no localStorage. Configurando aplicação...");
             await setupApplicationAfterLogin();
         } else {
