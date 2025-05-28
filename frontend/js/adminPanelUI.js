@@ -4,25 +4,21 @@ import {
     getAdminUsuarioById,
     createAdminUsuario,
     updateAdminUsuario,
-    deleteAdminUsuarioAPI,
+    deleteAdminUsuarioAPI, // Usado para DESATIVAR (backend faz soft delete)
     mecanicoChangeOwnPassword
 } from './adminPanelService.js';
 
-// Elementos do DOM para Gerenciamento de Usuários pelo Admin
 const listaUsuariosAdminUI = document.getElementById('lista-usuarios-admin');
 const formAdminUsuario = document.getElementById('formAdminUsuario');
 const adminUsuarioIdInput = document.getElementById('adminUsuarioId');
 const adminUsuarioModalLabel = document.getElementById('adminUsuarioModalLabel');
 const adminUsuarioModal = $('#adminUsuarioModal');
-const btnSalvarAdminUsuarioModal = document.getElementById('btnSalvarAdminUsuario');
+// const btnSalvarAdminUsuarioModal = document.getElementById('btnSalvarAdminUsuario'); // Não usado diretamente aqui
 
-// Elementos do DOM para Mecânico Alterar Senha
 const formMecanicoChangePassword = document.getElementById('formMecanicoChangePassword');
 const mecanicoChangePasswordModal = $('#mecanicoChangePasswordModal');
 const changePasswordErrorDiv = document.getElementById('changePasswordError');
 
-
-// --- Funções de UI para Gerenciamento de Usuários (Admin) ---
 
 export async function renderAdminUsuarios(searchTerm = '') {
     if (!listaUsuariosAdminUI) {
@@ -38,22 +34,43 @@ export async function renderAdminUsuarios(searchTerm = '') {
             usuarios.forEach(user => {
                 const item = document.createElement('li');
                 item.className = 'list-group-item d-flex justify-content-between align-items-center';
+
                 const tipoDisplay = user.tipo_usuario.charAt(0).toUpperCase() + user.tipo_usuario.slice(1);
-                const statusDisplay = user.is_active ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>';
+                const statusDisplay = user.is_active ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-secondary">Inativo</span>';
+
+                let displayNameHTML = `<strong>${user.username}</strong>`;
+                const fullName = [user.first_name, user.last_name].filter(Boolean).join(" ").trim();
+                if (fullName) {
+                    displayNameHTML += ` (${fullName})`;
+                }
+
+                const isActive = user.is_active;
+                const actionButtonText = isActive ? 'Desativar' : 'Ativar';
+                const actionButtonClass = isActive ? 'btn-outline-danger' : 'btn-outline-success';
+
+                const disableActionButton = user.is_superuser && isActive;
+                const buttonDisabledAttribute = disableActionButton ? 'disabled title="Superusuários ativos não podem ser desativados por esta interface."' : '';
+
                 item.innerHTML = `
                     <div>
-                        <strong>${user.username}</strong> (${user.first_name || ''} ${user.last_name || ''})<br>
+                        ${displayNameHTML}<br>
                         <small>Email: ${user.email || 'N/A'} | Tipo: ${tipoDisplay} | Status: ${statusDisplay}</small>
                     </div>
                     <div>
                         <button class="btn btn-sm btn-warning mr-2 btn-editar-admin-usuario" data-id="${user.id}">Editar</button>
-                        <button class="btn btn-sm btn-danger btn-deletar-admin-usuario" data-id="${user.id}" ${user.is_superuser ? 'disabled title="Superusuários não podem ser deletados por aqui"' : ''}>Deletar</button>
+                        <button 
+                            class="btn btn-sm ${actionButtonClass} btn-toggle-status-admin-usuario" 
+                            data-id="${user.id}" 
+                            data-current-is-active="${isActive}"
+                            ${buttonDisabledAttribute}>
+                            ${actionButtonText}
+                        </button>
                     </div>
                 `;
                 listaUsuariosAdminUI.appendChild(item);
             });
         } else {
-            listaUsuariosAdminUI.innerHTML = `<li class="list-group-item">${searchTerm ? 'Nenhum usuário encontrado.' : 'Nenhum usuário cadastrado.'}</li>`;
+            listaUsuariosAdminUI.innerHTML = `<li class="list-group-item">${searchTerm ? 'Nenhum usuário encontrado para o termo informado.' : 'Nenhum usuário cadastrado.'}</li>`;
         }
     } catch (error) {
         console.error('Erro ao renderizar usuários (admin):', error);
@@ -66,44 +83,49 @@ function configurarModalAdminUsuario(modo, userData = null) {
     formAdminUsuario.reset();
     adminUsuarioIdInput.value = userData ? userData.id : '';
 
-    const camposFormulario = formAdminUsuario.elements;
-    let tituloModal = '';
-
     const passwordInput = document.getElementById('adminUsuarioPassword');
     const passwordHelp = document.getElementById('passwordHelp');
+    const usernameInput = document.getElementById('adminUsuarioUsername');
+    const tipoUsuarioSelect = document.getElementById('adminUsuarioTipo');
+    const isActiveCheckbox = document.getElementById('adminUsuarioIsActive');
 
     if (modo === 'novo') {
-        tituloModal = 'Adicionar Novo Mecânico';
-        document.getElementById('adminUsuarioTipo').value = 'mecanico'; // Default para mecânico
-        document.getElementById('adminUsuarioIsActive').checked = true; // Default para ativo
+        adminUsuarioModalLabel.textContent = 'Adicionar Novo Usuário';
+        if (tipoUsuarioSelect) tipoUsuarioSelect.value = 'mecanico';
+        if (isActiveCheckbox) isActiveCheckbox.checked = true;
         if (passwordInput) passwordInput.required = true;
         if (passwordHelp) passwordHelp.textContent = 'Obrigatório ao criar.';
+        if (usernameInput) usernameInput.disabled = false;
+        if (tipoUsuarioSelect) tipoUsuarioSelect.disabled = false;
 
     } else if (modo === 'editar') {
-        tituloModal = `Editar Usuário: ${userData ? userData.username : ''}`;
-        if (passwordInput) passwordInput.required = false; // Senha não é obrigatória na edição
+        adminUsuarioModalLabel.textContent = `Editar Usuário: ${userData ? userData.username : ''}`;
+        if (passwordInput) passwordInput.required = false;
         if (passwordHelp) passwordHelp.textContent = 'Deixe em branco para não alterar a senha.';
 
         if (userData) {
-            document.getElementById('adminUsuarioUsername').value = userData.username || '';
-            // Não preenchemos a senha por segurança
+            if (usernameInput) usernameInput.value = userData.username || '';
             document.getElementById('adminUsuarioFirstName').value = userData.first_name || '';
             document.getElementById('adminUsuarioLastName').value = userData.last_name || '';
             document.getElementById('adminUsuarioEmail').value = userData.email || '';
-            document.getElementById('adminUsuarioTipo').value = userData.tipo_usuario || 'mecanico';
-            document.getElementById('adminUsuarioIsActive').checked = userData.is_active;
+            if (tipoUsuarioSelect) tipoUsuarioSelect.value = userData.tipo_usuario || 'mecanico';
+            if (isActiveCheckbox) isActiveCheckbox.checked = userData.is_active;
 
-            // Desabilitar edição de username e tipo para superusuários ou para o próprio admin (precisaria checar o id do user logado)
-            // Por ora, vamos permitir, mas é um ponto de atenção para segurança.
-             if (userData.is_superuser) {
-                document.getElementById('adminUsuarioTipo').disabled = true;
+            if (usernameInput) usernameInput.disabled = true;
+
+            const loggedInUsername = localStorage.getItem('username');
+
+            if (userData.is_superuser && userData.username === loggedInUsername) {
+                if (tipoUsuarioSelect) tipoUsuarioSelect.disabled = true;
+                // Se você quiser impedir que o admin desative a si mesmo pelo modal de edição:
+                // if (isActiveCheckbox) isActiveCheckbox.disabled = true;
+            } else if (userData.is_superuser) {
+                 if (tipoUsuarioSelect) tipoUsuarioSelect.disabled = true; // Não pode mudar tipo de outros superusers
             } else {
-                document.getElementById('adminUsuarioTipo').disabled = false;
+                if (tipoUsuarioSelect) tipoUsuarioSelect.disabled = false;
             }
         }
     }
-
-    adminUsuarioModalLabel.textContent = tituloModal;
     adminUsuarioModal.modal('show');
 }
 
@@ -127,27 +149,30 @@ export async function handleSalvarAdminUsuario() {
     const password = document.getElementById('adminUsuarioPassword').value;
 
     const dadosUsuario = {
-        username: document.getElementById('adminUsuarioUsername').value,
-        first_name: document.getElementById('adminUsuarioFirstName').value || null,
-        last_name: document.getElementById('adminUsuarioLastName').value || null,
-        email: document.getElementById('adminUsuarioEmail').value || null,
+        first_name: document.getElementById('adminUsuarioFirstName').value.trim() || "",
+        last_name: document.getElementById('adminUsuarioLastName').value.trim() || "",
+        email: document.getElementById('adminUsuarioEmail').value.trim() || "",
         tipo_usuario: document.getElementById('adminUsuarioTipo').value,
         is_active: document.getElementById('adminUsuarioIsActive').checked,
-        // Incluir is_staff e is_superuser se quiser controlá-los (com cuidado)
-        // is_staff: document.getElementById('adminUsuarioIsStaff') ? document.getElementById('adminUsuarioIsStaff').checked : false,
     };
 
-    if (password && password.trim() !== "") {
+    if (!id) {
+        dadosUsuario.username = document.getElementById('adminUsuarioUsername').value;
+        if (!dadosUsuario.username) {
+            alert('Username é obrigatório para criar um novo usuário!');
+            return;
+        }
+        if (!password || password.trim() === "") {
+            alert('Senha é obrigatória para criar um novo usuário.');
+            return;
+        }
         dadosUsuario.password = password;
-    } else if (!id) { // Se é novo usuário e senha está vazia
-        alert('Senha é obrigatória para criar um novo usuário.');
-        return;
-    }
-
-
-    if (!dadosUsuario.username) {
-        alert('Username é obrigatório!');
-        return;
+    } else {
+        if (password && password.trim() !== "") {
+            dadosUsuario.password = password;
+        }
+        // Username não é incluído nos dados de atualização se não pode ser alterado
+        // delete dadosUsuario.username; // O serializer DRF cuida disso se username for read-only na atualização
     }
 
     try {
@@ -159,40 +184,83 @@ export async function handleSalvarAdminUsuario() {
             alert('Usuário criado com sucesso!');
         }
         if(adminUsuarioModal.length) adminUsuarioModal.modal('hide');
-        renderAdminUsuarios(); // Recarrega a lista
-    } catch (error) {
-        console.error('Erro ao salvar usuário (admin):', error);
-        // Tenta exibir erros de validação do backend
-        let errorMessage = `Erro ao salvar usuário: ${error.message}`;
-        if (error.response && error.response.data) {
-            const errors = error.response.data;
-            Object.keys(errors).forEach(key => {
-                errorMessage += `\n${key}: ${errors[key].join ? errors[key].join(', ') : errors[key]}`;
-            });
+        renderAdminUsuarios();
+    } catch (errorData) {
+        console.error('Erro ao salvar usuário (admin):', errorData);
+        let errorMessage = "Erro ao salvar usuário.";
+        if (errorData && typeof errorData === 'object') {
+            const detailedMessages = [];
+            for (const field in errorData) {
+                // Adiciona formatação para o nome do campo ser mais legível
+                const fieldName = field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                detailedMessages.push(`${fieldName}: ${Array.isArray(errorData[field]) ? errorData[field].join(', ') : errorData[field]}`);
+            }
+            if (detailedMessages.length > 0) {
+                errorMessage = `Por favor, corrija os seguintes erros:\n${detailedMessages.join('\n')}`;
+            } else if (errorData.detail) {
+                errorMessage = errorData.detail;
+            }
         }
         alert(errorMessage);
     }
 }
 
-export async function handleDeletarAdminUsuario(userId) {
-    const user = await getAdminUsuarioById(userId); // Para pegar o username para o confirm
-    if (user && user.is_superuser) {
-        alert("Superusuários não podem ser deletados através desta interface.");
+export async function handleToggleUserActiveStateAdmin(userId, currentIsActiveString) {
+    const isActiveCurrently = (currentIsActiveString === 'true');
+
+    let userToToggle;
+    try {
+        userToToggle = await getAdminUsuarioById(userId);
+    } catch (e) {
+        alert(`Erro ao buscar dados do usuário: ${e.message}`);
         return;
     }
-    if (confirm(`Tem certeza que deseja deletar o usuário "${user ? user.username : userId}"? Esta ação não pode ser desfeita.`)) {
+
+    if (!userToToggle) {
+        alert("Usuário não encontrado.");
+        return;
+    }
+
+    const actionText = isActiveCurrently ? "desativar" : "ativar";
+    const confirmMessage = `Tem certeza que deseja ${actionText} o usuário "${userToToggle.username}"?`;
+
+    if (userToToggle.is_superuser && isActiveCurrently) {
+        alert("Superusuários ativos não podem ser desativados diretamente por esta interface para prevenir bloqueio do sistema. Utilize o painel Django Admin se necessário.");
+        return;
+    }
+
+    if (confirm(confirmMessage)) {
         try {
-            await deleteAdminUsuarioAPI(userId);
-            alert('Usuário deletado com sucesso!');
-            renderAdminUsuarios(); // Recarrega a lista
-        } catch (error) {
-            console.error('Erro ao deletar usuário (admin):', error);
-            alert(`Erro ao deletar usuário: ${error.message}`);
+            if (isActiveCurrently) {
+                await deleteAdminUsuarioAPI(userId);
+                alert('Usuário desativado com sucesso!');
+            } else {
+                await updateAdminUsuario(userId, { is_active: true }); // Envia PATCH com is_active: true
+                alert('Usuário ativado com sucesso!');
+            }
+            renderAdminUsuarios();
+        } catch (errorData) { // errorData pode ser o objeto JSON do DRF ou um Error com message
+            console.error(`Erro ao ${actionText} usuário (admin):`, errorData);
+            let alertMessage = `Erro ao ${actionText} usuário.`;
+            if (errorData instanceof Error) { // Se for um objeto Error padrão
+                alertMessage = errorData.message;
+            } else if (errorData && typeof errorData === 'object') { // Se for um objeto (provavelmente do DRF)
+                const messages = [];
+                 if (errorData.detail) {
+                    messages.push(errorData.detail);
+                } else {
+                    for (const key in errorData) {
+                        messages.push(`${key}: ${Array.isArray(errorData[key]) ? errorData[key].join(', ') : errorData[key]}`);
+                    }
+                }
+                if (messages.length > 0) {
+                    alertMessage = `Erro ao ${actionText} usuário:\n${messages.join('\n')}`;
+                }
+            }
+            alert(alertMessage);
         }
     }
 }
-
-// --- Funções de UI para Mecânico Alterar a Própria Senha ---
 
 export async function handleMecanicoMudarSenha() {
     if (!formMecanicoChangePassword) return;
@@ -217,6 +285,13 @@ export async function handleMecanicoMudarSenha() {
         }
         return;
     }
+    if (newPassword.length < 8) {
+        if (changePasswordErrorDiv) {
+            changePasswordErrorDiv.textContent = 'A nova senha deve ter pelo menos 8 caracteres.';
+            changePasswordErrorDiv.style.display = 'block';
+        }
+        return;
+    }
 
     try {
         await mecanicoChangeOwnPassword({
@@ -226,11 +301,27 @@ export async function handleMecanicoMudarSenha() {
         alert('Senha alterada com sucesso!');
         if(mecanicoChangePasswordModal.length) mecanicoChangePasswordModal.modal('hide');
         formMecanicoChangePassword.reset();
-    } catch (error) { // error aqui deve ser o objeto de erro do DRF
-        console.error('Erro ao alterar senha:', error);
+    } catch (errorData) {
+        console.error('Erro ao alterar senha:', errorData);
         let errorMessage = "Erro desconhecido ao alterar senha.";
-        if (error && typeof error === 'object') {
-            errorMessage = Object.values(error).flat().join(' '); // Pega todas as mensagens de erro
+         if (errorData && typeof errorData === 'object') {
+            const errorMessages = [];
+            if (errorData.detail) {
+                 errorMessages.push(errorData.detail);
+            } else if (errorData.non_field_errors) { // Erro comum do DRF para Serializer.validate()
+                errorMessages.push(errorData.non_field_errors.join(', '));
+            } else {
+                for (const key in errorData) {
+                    // Formata o nome do campo para ser mais legível
+                    const fieldName = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    errorMessages.push(`${fieldName}: ${Array.isArray(errorData[key]) ? errorData[key].join(', ') : errorData[key]}`);
+                }
+            }
+            errorMessage = errorMessages.join('\n');
+            if (!errorMessage) errorMessage = "Não foi possível alterar a senha. Verifique os dados.";
+
+        } else if (typeof errorData === 'string') {
+            errorMessage = errorData;
         }
         if (changePasswordErrorDiv) {
             changePasswordErrorDiv.textContent = errorMessage;

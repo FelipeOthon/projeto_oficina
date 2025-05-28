@@ -15,30 +15,43 @@ function getAuthHeaders() {
 }
 
 // Função para lidar com erros de resposta
-async function handleResponseError(response) {
+async function handleResponseError(response, defaultErrorMessage = 'Erro desconhecido') {
     if (response.status === 401) {
-        console.warn("Erro 401 em adminPanelService: Não autorizado. Deslogando...");
+        console.warn(`Erro 401 em adminPanelService: Não autorizado. Deslogando...`);
         handleLogout(); // Chama a função global de logout
     }
-    // Tenta obter detalhes do erro do corpo da resposta
-    const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}. Não foi possível obter detalhes do erro.` }));
 
-    let erroMsg = `${response.status}: ${errData.detail || response.statusText || 'Erro desconhecido'}`;
+    let errorData;
+    try {
+        errorData = await response.json();
+    } catch (e) {
+        errorData = { detail: `Erro HTTP ${response.status}. ${defaultErrorMessage}` };
+    }
 
-    // Se houver erros de campo específicos do DRF, adiciona-os à mensagem
-    if (errData && typeof errData === 'object' && Object.keys(errData).length > 1) {
+    let erroMsg = `${response.status}: ${errorData.detail || response.statusText || defaultErrorMessage}`;
+
+    if (errorData && typeof errorData === 'object' && Object.keys(errorData).length > (errorData.detail ? 1: 0) ) {
         const fieldErrors = [];
-        for (const field in errData) {
-            if (field !== 'detail') { // Não repete o 'detail'
-                fieldErrors.push(`${field}: ${Array.isArray(errData[field]) ? errData[field].join(', ') : errData[field]}`);
+        for (const field in errorData) {
+            if (field !== 'detail') {
+                fieldErrors.push(`${field.replace("_", " ")}: ${Array.isArray(errorData[field]) ? errorData[field].join(', ') : errorData[field]}`);
             }
         }
         if (fieldErrors.length > 0) {
-            erroMsg += `\nDetalhes:\n${fieldErrors.join('\n')}`;
+            erroMsg = `Por favor, corrija os seguintes erros:\n${fieldErrors.join('\n')}`;
+            // Se também houver um 'detail', adiciona-o (caso não seja a mensagem principal)
+            if (errorData.detail && !erroMsg.includes(errorData.detail)) {
+                 erroMsg = `${errorData.detail}\n${erroMsg}`;
+            }
         }
+    }
+    // Se a mensagem de erro ainda for genérica e houver um detail, usa o detail.
+    if ((erroMsg.startsWith("400:") || erroMsg.startsWith("500:")) && errorData.detail) {
+        erroMsg = errorData.detail;
     }
     throw new Error(erroMsg);
 }
+
 
 // --- Funções para Admin Gerenciar Usuários ---
 const adminUsuariosUrl = `${apiUrlBase}/admin/usuarios/`;
@@ -46,11 +59,11 @@ const adminUsuariosUrl = `${apiUrlBase}/admin/usuarios/`;
 export async function getAdminUsuarios(searchTerm = '') {
     let url = adminUsuariosUrl;
     if (searchTerm && searchTerm.trim() !== '') {
-        url += `?search=${encodeURIComponent(searchTerm.trim())}`; // Supondo que o backend suporte busca
+        url += `?search=${encodeURIComponent(searchTerm.trim())}`;
     }
     const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
-        await handleResponseError(response);
+        await handleResponseError(response, "Falha ao buscar usuários.");
     }
     return await response.json();
 }
@@ -58,7 +71,7 @@ export async function getAdminUsuarios(searchTerm = '') {
 export async function getAdminUsuarioById(userId) {
     const response = await fetch(`${adminUsuariosUrl}${userId}/`, { headers: getAuthHeaders() });
     if (!response.ok) {
-       await handleResponseError(response);
+       await handleResponseError(response, `Falha ao buscar usuário ID: ${userId}.`);
     }
     return await response.json();
 }
@@ -70,32 +83,36 @@ export async function createAdminUsuario(userData) {
         body: JSON.stringify(userData),
     });
     if (!response.ok) {
-        await handleResponseError(response);
+        // Lança o objeto de erro do DRF diretamente para tratamento no UI
+        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status} ao criar usuário.` }));
+        throw errData;
     }
     return await response.json();
 }
 
 export async function updateAdminUsuario(userId, userData) {
     const response = await fetch(`${adminUsuariosUrl}${userId}/`, {
-        method: 'PUT',
+        method: 'PATCH', // <<< ALTERADO DE PUT PARA PATCH
         headers: getAuthHeaders(),
         body: JSON.stringify(userData),
     });
     if (!response.ok) {
-        await handleResponseError(response);
+        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status} ao atualizar usuário.` }));
+        throw errData; // Lança o objeto de erro do DRF diretamente
     }
     return await response.json();
 }
 
+// Esta função agora será usada para DESATIVAR um usuário (o backend trata o soft delete)
 export async function deleteAdminUsuarioAPI(userId) {
     const response = await fetch(`${adminUsuariosUrl}${userId}/`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
     });
-    if (!response.ok && response.status !== 204) { // 204 No Content é sucesso para DELETE
-        await handleResponseError(response);
+    if (!response.ok && response.status !== 204) {
+        await handleResponseError(response, `Falha ao desativar usuário ID: ${userId}.`);
     }
-    return true; // Ou response.ok se preferir retornar o status da resposta
+    return true;
 }
 
 
@@ -104,14 +121,13 @@ const mecanicoChangePasswordUrl = `${apiUrlBase}/usuarios/mudar-senha/`;
 
 export async function mecanicoChangeOwnPassword(passwordData) {
     const response = await fetch(mecanicoChangePasswordUrl, {
-        method: 'PUT', // Ou POST, dependendo de como a view está configurada (UpdateAPIView usa PUT)
+        method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify(passwordData),
     });
     if (!response.ok) {
-        // Aqui, queremos que a mensagem de erro do serializer seja exibida no modal
-        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status}.` }));
-        throw errData; // Lança os dados do erro para serem tratados no UI
+        const errData = await response.json().catch(() => ({ detail: `Erro HTTP ${response.status} ao alterar senha.` }));
+        throw errData;
     }
-    return await response.json(); // Para mensagem de sucesso
+    return await response.json();
 }

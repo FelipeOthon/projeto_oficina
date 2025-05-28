@@ -38,7 +38,8 @@ import {
     abrirModalNovoAdminUsuario,
     abrirModalEditarAdminUsuario,
     handleSalvarAdminUsuario,
-    handleDeletarAdminUsuario,
+    // handleDeletarAdminUsuario, // Linha removida
+    handleToggleUserActiveStateAdmin, // Linha importe nova para desabilitar
     handleMecanicoMudarSenha
 } from './adminPanelUI.js';
 
@@ -376,8 +377,10 @@ function setupCommonEventListeners() {
                 handleVerDetalhesOS(id);
             }
             else if (id && targetButton.classList.contains('btn-editar-admin-usuario')) abrirModalEditarAdminUsuario(id);
-            else if (id && targetButton.classList.contains('btn-deletar-admin-usuario')) handleDeletarAdminUsuario(id);
-
+            else if (id && targetButton.classList.contains('btn-toggle-status-admin-usuario')) {
+    const currentStatus = targetButton.dataset.currentIsActive;
+    handleToggleUserActiveStateAdmin(id, currentStatus);
+}
             const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
             if (osDetalhesModalElement && osDetalhesModalElement.contains(targetButton)) {
                 const osIdContext = osDetalhesModalElement.dataset.currentOsId;

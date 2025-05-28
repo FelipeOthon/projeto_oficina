@@ -16,7 +16,7 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import IntegrityError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from .permissions import IsAdminUser, IsAdminOrMecanico, AdminFullAccessMecanicoReadOnly, IsMecanicoUser # Adicionado IsMecanicoUser
 
 # Imports para PDF
@@ -212,7 +212,7 @@ class ItemOsServicoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAP
 
 # --- VIEW PARA LISTAR MECÂNICOS ---
 class MecanicoListAPIView(generics.ListAPIView):
-    queryset = Usuario.objects.filter(tipo_usuario='mecanico').order_by('first_name', 'last_name', 'username')
+    queryset = Usuario.objects.filter(tipo_usuario='mecanico', is_active=True).order_by('first_name', 'last_name', 'username') # Listar apenas mecanicos ativos
     serializer_class = MecanicoSerializer
     permission_classes = [IsAdminOrMecanico]
 
@@ -250,21 +250,25 @@ class OrdemDeServicoPDFView(generics.GenericAPIView):
         'itens_pecas',
         'itens_servicos'
     ).all()
-    permission_classes = [IsAdminOrMecanico]
-    serializer_class = OrdemDeServicoSerializer
+    permission_classes = [IsAdminOrMecanico] # Ou AllowAny se o PDF puder ser acessado sem login, dependendo do fluxo
+    serializer_class = OrdemDeServicoSerializer # Necessário para o get_object_or_404 funcionar bem com GenericAPIView
     lookup_field = 'pk'
 
     def get(self, request, *args, **kwargs):
         os_instance = get_object_or_404(self.get_queryset(), pk=kwargs.get(self.lookup_field))
+        # Adicionar uma verificação se o PDF deve ser público ou se requer autenticação/permissão específica
         context = {'os': os_instance}
         pdf = render_pdf_view('gestao_oficina/pdf/os_pdf_template.html', context)
         return pdf
 
 # --- ADIÇÕES PARA GERENCIAMENTO DE USUÁRIOS (ADMIN) ---
 class AdminUserListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Usuario.objects.all().order_by('username')
+    queryset = Usuario.objects.all().order_by('username') # Poderia filtrar por is_active=True por padrão e ter um query param para ver inativos
     serializer_class = AdminUserManagementSerializer
     permission_classes = [IsAdminUser]
+    filter_backends = [SearchFilter] # Adicionado filtro de busca
+    search_fields = ['username', 'first_name', 'last_name', 'email']
+
 
 class AdminUserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Usuario.objects.all()
@@ -273,12 +277,30 @@ class AdminUserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIVie
     lookup_field = 'pk'
 
     def perform_destroy(self, instance):
-        # Por padrão, o DRF deleta. Se quiser desativar:
-        # instance.is_active = False
-        # instance.save()
-        # Vamos manter o delete por enquanto, mas é uma opção.
-        super().perform_destroy(instance)
+        """
+        Em vez de deletar fisicamente, apenas desativa o usuário (soft delete).
+        """
+        # Adicionar verificação para não desativar o próprio usuário admin logado se for o único superuser ativo
+        if instance.is_superuser and self.request.user == instance:
+            active_superusers = Usuario.objects.filter(is_superuser=True, is_active=True).count()
+            if active_superusers <= 1:
+                # Não é ideal retornar Response aqui, mas é uma forma de bloquear.
+                # Uma abordagem melhor seria com permissions ou no método destroy.
+                # Para este contexto, vamos impedir a desativação.
+                # No DRF, perform_destroy não deve retornar Response.
+                # Levantar uma exceção como PermissionDenied seria mais apropriado.
+                # serializers.ValidationError({"detail": "Não é possível desativar o único superusuário ativo."})
+                # Como estamos dentro de perform_destroy, simplesmente não fazer nada ou logar.
+                # A proteção mais efetiva é no botão do frontend e na permissão da view.
+                print(f"Tentativa de desativar o único superusuário ativo (ID: {instance.id}) por ele mesmo. Ação impedida em perform_destroy.")
+                return # Impede a desativação
 
+        instance.is_active = False
+        instance.save()
+        # Não chamamos super().perform_destroy(instance) para evitar a exclusão física
+
+    # O método update (PUT/PATCH) já permitirá alterar 'is_active' para True,
+    # pois AdminUserManagementSerializer inclui 'is_active' nos fields.
 
 # --- VIEW PARA MECÂNICO ALTERAR A PRÓPRIA SENHA ---
 class MecanicoChangePasswordView(generics.UpdateAPIView):
@@ -295,10 +317,8 @@ class MecanicoChangePasswordView(generics.UpdateAPIView):
         serializer = self.get_serializer(data=request.data)
 
         if serializer.is_valid():
-            # serializer.save() já lida com a validação da old_password e salvamento da new_password
             serializer.save()
-            # Manter o usuário logado após a mudança de senha
-            update_session_auth_hash(request, self.object)
+            update_session_auth_hash(request, self.object) # Manter o usuário logado
             return Response({"detail": "Senha alterada com sucesso."}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

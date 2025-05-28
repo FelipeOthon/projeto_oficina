@@ -6,7 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="6ddb8d25-419f-4653-b538-52ae18089593" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/adminPanelService.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/adminPanelService.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/adminPanelUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/adminPanelUI.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,7 +112,7 @@
       <workItem from="1748003103102" duration="17812000" />
       <workItem from="1748256562594" duration="26110000" />
       <workItem from="1748347468374" duration="20382000" />
-      <workItem from="1748434013704" duration="1403000" />
+      <workItem from="1748434013704" duration="5852000" />
     </task>
     <servers />
   </component>
