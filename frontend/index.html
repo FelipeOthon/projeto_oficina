@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oficina - Gestão Completa</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/locales/pt-br.js'></script>
+
     <link rel="stylesheet" href="css/estilos.css">
 </head>
 <body>
@@ -71,110 +76,145 @@
                     </div>
                 </div>
             </div>
+            <section id="relatorios-section" class="mb-5 card shadow-sm">
+                <div class="card-header">
+                    <h1 class="h4 mb-0">Relatórios da Oficina</h1>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="relatorioDataInicio">Data de Início:</label>
+                                <input type="date" class="form-control" id="relatorioDataInicio">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="relatorioDataFim">Data de Fim:</label>
+                                <input type="date" class="form-control" id="relatorioDataFim">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="relatoriosError" class="text-danger mt-2 mb-3" style="display:none;"></div>
+                    <div class="row mt-2">
+                        <div class="col-md-6 mb-2">
+                            <button id="btnGerarRelatorioOSConcluidas" class="btn btn-primary btn-block">
+                                Gerar Relatório de OS Concluídas/Faturadas
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <button id="btnGerarRelatorioFaturamento" class="btn btn-success btn-block">
+                                Gerar Relatório de Faturamento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <section id="admin-panel-section" class="mb-5" style="display:none;">
-    <header class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Painel Administrativo</h1>
-    </header>
-    <main>
-        <div id="admin-user-management" class="mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2>Gerenciar Usuários</h2>
-                <button id="btnNovoUsuarioAdmin" class="btn btn-success">Novo Usuário</button>
-            </div>
-            <ul id="lista-usuarios-admin" class="list-group">
-                <li class="list-group-item">Carregando usuários...</li>
-            </ul>
-        </div>
-        </main>
-</section>
+                <header class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Painel Administrativo</h1>
+                </header>
+                <main>
+                    <div id="admin-user-management" class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h2>Gerenciar Usuários</h2>
+                            <button id="btnNovoUsuarioAdmin" class="btn btn-success">Novo Usuário</button>
+                        </div>
+                        <ul id="lista-usuarios-admin" class="list-group">
+                            <li class="list-group-item">Carregando usuários...</li>
+                        </ul>
+                    </div>
+                </main>
+            </section>
 
-<div class="modal fade" id="adminUsuarioModal" tabindex="-1" role="dialog" aria-labelledby="adminUsuarioModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="adminUsuarioModalLabel">Gerenciar Usuário</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
+            <div class="modal fade" id="adminUsuarioModal" tabindex="-1" role="dialog" aria-labelledby="adminUsuarioModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="adminUsuarioModalLabel">Gerenciar Usuário</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="formAdminUsuario">
+                                <input type="hidden" id="adminUsuarioId">
+                                <div class="form-group">
+                                    <label for="adminUsuarioUsername">Username*</label>
+                                    <input type="text" class="form-control" id="adminUsuarioUsername" required autocomplete="username">
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminUsuarioPassword">Senha</label>
+                                    <input type="password" class="form-control" id="adminUsuarioPassword" autocomplete="new-password">
+                                    <small id="passwordHelp" class="form-text text-muted">Obrigatório ao criar. Deixe em branco ao editar para não alterar a senha.</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminUsuarioFirstName">Primeiro Nome</label>
+                                    <input type="text" class="form-control" id="adminUsuarioFirstName" autocomplete="given-name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminUsuarioLastName">Sobrenome</label>
+                                    <input type="text" class="form-control" id="adminUsuarioLastName" autocomplete="family-name">
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminUsuarioEmail">Email</label>
+                                    <input type="email" class="form-control" id="adminUsuarioEmail" autocomplete="email">
+                                </div>
+                                <div class="form-group">
+                                    <label for="adminUsuarioTipo">Tipo de Usuário*</label>
+                                    <select class="form-control" id="adminUsuarioTipo" required>
+                                        <option value="mecanico">Mecânico</option>
+                                        <option value="admin">Administrador</option>
+                                    </select>
+                                </div>
+                                 <div class="form-check mb-3">
+                                    <input type="checkbox" class="form-check-input" id="adminUsuarioIsActive">
+                                    <label class="form-check-label" for="adminUsuarioIsActive">Ativo</label>
+                                </div>
+                                </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btnSalvarAdminUsuario">Salvar Usuário</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body">
-                <form id="formAdminUsuario">
-                    <input type="hidden" id="adminUsuarioId">
-                    <div class="form-group">
-                        <label for="adminUsuarioUsername">Username*</label>
-                        <input type="text" class="form-control" id="adminUsuarioUsername" required autocomplete="username">
-                    </div>
-                    <div class="form-group">
-                        <label for="adminUsuarioPassword">Senha</label>
-                        <input type="password" class="form-control" id="adminUsuarioPassword" autocomplete="new-password">
-                        <small id="passwordHelp" class="form-text text-muted">Obrigatório ao criar. Deixe em branco ao editar para não alterar a senha.</small>
-                    </div>
-                    <div class="form-group">
-                        <label for="adminUsuarioFirstName">Primeiro Nome</label>
-                        <input type="text" class="form-control" id="adminUsuarioFirstName" autocomplete="given-name">
-                    </div>
-                    <div class="form-group">
-                        <label for="adminUsuarioLastName">Sobrenome</label>
-                        <input type="text" class="form-control" id="adminUsuarioLastName" autocomplete="family-name">
-                    </div>
-                    <div class="form-group">
-                        <label for="adminUsuarioEmail">Email</label>
-                        <input type="email" class="form-control" id="adminUsuarioEmail" autocomplete="email">
-                    </div>
-                    <div class="form-group">
-                        <label for="adminUsuarioTipo">Tipo de Usuário*</label>
-                        <select class="form-control" id="adminUsuarioTipo" required>
-                            <option value="mecanico">Mecânico</option>
-                            <option value="admin">Administrador</option>
-                        </select>
-                    </div>
-                     <div class="form-check mb-3">
-                        <input type="checkbox" class="form-check-input" id="adminUsuarioIsActive">
-                        <label class="form-check-label" for="adminUsuarioIsActive">Ativo</label>
-                    </div>
-                    </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnSalvarAdminUsuario">Salvar Usuário</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="modal fade" id="mecanicoChangePasswordModal" tabindex="-1" role="dialog" aria-labelledby="mecanicoChangePasswordModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="mecanicoChangePasswordModalLabel">Alterar Minha Senha</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="formMecanicoChangePassword">
-                    <div class="form-group">
-                        <label for="mecanicoOldPassword">Senha Antiga*</label>
-                        <input type="password" class="form-control" id="mecanicoOldPassword" required autocomplete="current-password">
+            <div class="modal fade" id="mecanicoChangePasswordModal" tabindex="-1" role="dialog" aria-labelledby="mecanicoChangePasswordModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="mecanicoChangePasswordModalLabel">Alterar Minha Senha</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="formMecanicoChangePassword">
+                                <div class="form-group">
+                                    <label for="mecanicoOldPassword">Senha Antiga*</label>
+                                    <input type="password" class="form-control" id="mecanicoOldPassword" required autocomplete="current-password">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mecanicoNewPassword">Nova Senha*</label>
+                                    <input type="password" class="form-control" id="mecanicoNewPassword" required autocomplete="new-password">
+                                </div>
+                                <div class="form-group">
+                                    <label for="mecanicoNewPasswordConfirm">Confirmar Nova Senha*</label>
+                                    <input type="password" class="form-control" id="mecanicoNewPasswordConfirm" required autocomplete="new-password">
+                                </div>
+                                <div id="changePasswordError" class="text-danger mt-2" style="display:none;"></div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                            <button type="button" class="btn btn-primary" id="btnSalvarNovaSenhaMecanico">Salvar Nova Senha</button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="mecanicoNewPassword">Nova Senha*</label>
-                        <input type="password" class="form-control" id="mecanicoNewPassword" required autocomplete="new-password">
-                    </div>
-                    <div class="form-group">
-                        <label for="mecanicoNewPasswordConfirm">Confirmar Nova Senha*</label>
-                        <input type="password" class="form-control" id="mecanicoNewPasswordConfirm" required autocomplete="new-password">
-                    </div>
-                    <div id="changePasswordError" class="text-danger mt-2" style="display:none;"></div>
-                </form>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnSalvarNovaSenhaMecanico">Salvar Nova Senha</button>
-            </div>
-        </div>
-    </div>
-</div>
 
             <section id="clientes-section" class="mb-5">
                 <header class="d-flex justify-content-between align-items-center mb-4">
@@ -213,10 +253,11 @@
                     <button id="btnNovoAgendamento" class="btn btn-info">Novo Agendamento</button>
                 </header>
                 <main>
-                    <h2>Lista de Agendamentos</h2>
-                    <ul id="lista-agendamentos" class="list-group">
-                        <li class="list-group-item">Carregando agendamentos...</li>
-                    </ul>
+                    <h2>Calendário de Agendamentos</h2>
+                    {/* Container do Calendário (SUBSTITUÍDO A LISTA ANTERIOR) */}
+                    <div id="calendarioAgendamentos" class="bg-light p-3 border rounded shadow-sm" style="min-height: 500px;">
+                        {/* O calendário será renderizado aqui pelo JavaScript */}
+                    </div>
                 </main>
             </section>
 
@@ -236,7 +277,6 @@
             </section>
         </div>
     </div>
-
 
     <div class="modal fade" id="clienteModal" tabindex="-1" role="dialog" aria-labelledby="clienteModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -647,11 +687,9 @@
         </div>
     </div>
 
-
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
 
     <script type="module" src="js/main.js"></script>
 </body>

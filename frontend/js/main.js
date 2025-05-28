@@ -9,7 +9,9 @@ import {
     abrirModalEditarVeiculo, handleDeletarVeiculo, handleVerDetalhesVeiculo
 } from './veiculoUI.js';
 import {
-    renderAgendamentos, abrirModalNovoAgendamento, handleSalvarAgendamento,
+    // renderAgendamentos, // Removida importação da função antiga
+    inicializarCalendarioAgendamentos, // Adicionada importação da nova função
+    abrirModalNovoAgendamento, handleSalvarAgendamento,
     abrirModalEditarAgendamento, handleDeletarAgendamento, handleVerDetalhesAgendamento,
     populateClientesParaAgendamentoDropdown,
     populateVeiculosParaAgendamentoDropdown
@@ -32,16 +34,15 @@ import {
     abrirModalEditarItemServico,
     handleDeletarItemServico
 } from './ordemDeServicoUI.js';
-
 import {
     renderAdminUsuarios,
     abrirModalNovoAdminUsuario,
     abrirModalEditarAdminUsuario,
     handleSalvarAdminUsuario,
-    // handleDeletarAdminUsuario, // Linha removida
-    handleToggleUserActiveStateAdmin, // Linha importe nova para desabilitar
+    handleToggleUserActiveStateAdmin,
     handleMecanicoMudarSenha
 } from './adminPanelUI.js';
+import { setupRelatoriosListeners } from './relatoriosUI.js';
 
 const loginContainer = document.getElementById('login-container');
 const mainContentWrapper = document.getElementById('main-content-wrapper');
@@ -54,76 +55,44 @@ const inputBuscaGlobal = document.getElementById('inputBuscaGlobal');
 const btnLimparBuscaGlobal = document.getElementById('btnLimparBuscaGlobal');
 let debounceTimerGlobal;
 
+window.fullCalendarInstance = null;
+
 const placeholdersBusca = {
     clientes: "Buscar cliente por nome, email, CPF/CNPJ ou telefone...",
     veiculos: "Buscar veículo por placa, marca, modelo, chassi ou nome do cliente...",
-    agendamentos: "Buscar agendamento por cliente, veículo, serviço, status ou mecânico...",
+    agendamentos: "Filtros de agendamento serão aplicados no calendário.",
     os: "Buscar OS por número, cliente, veículo, status, problema, diagnóstico ou mecânico..."
 };
 
-// usernameFromForm: o username digitado no formulário de login ou pego do localStorage na carga inicial
 async function verifyTokenAndGetUserData(token, usernameFromContext = null) {
     if (!token) {
-        console.log("verifyTokenAndGetUserData: Nenhum token fornecido.");
         return null;
     }
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        console.log("verifyTokenAndGetUserData: Payload do token decodificado:", payload);
-
         const userIdFromPayload = payload.user_id;
 
         if (userIdFromPayload === undefined) {
-            console.error("verifyTokenAndGetUserData: 'user_id' não encontrado no payload do token.");
+            console.error("verifyTokenAndGetUserData: 'user_id' não encontrado no payload.");
             return { tokenValid: false, username: undefined, userType: undefined };
         }
-
-        // Se payload.username existir, usa ele. Senão, usa o username do contexto (login/storage).
-        // Como último recurso, usa o user_id como string.
         const usernameForDisplay = payload.username || usernameFromContext || String(userIdFromPayload);
-
-        // !!!!! LÓGICA SIMPLIFICADA PARA DETERMINAR ADMIN PELO user_id !!!!!
-        // Assumindo que o usuário admin "felipeothon" tem user_id = 1
-        const userType = (userIdFromPayload === 1) ? 'admin' : 'mecanico';
-
-        console.log(`verifyTokenAndGetUserData: User ID do payload: ${userIdFromPayload}, Username para display: ${usernameForDisplay}, UserType determinado: ${userType}`);
-
-        // Validação do token no backend (RECOMENDADO)
-        // try {
-        //     const verifyResponse = await fetch(`${apiUrlBase}/token/verify/`, {
-        //         method: 'POST',
-        //         headers: { 'Content-Type': 'application/json' },
-        //         body: JSON.stringify({ token: token })
-        //     });
-        //     if (!verifyResponse.ok) {
-        //         console.warn("verifyTokenAndGetUserData: A verificação do token no backend falhou (ex: expirado).");
-        //         return { username: usernameForDisplay, userType, tokenValid: false };
-        //     }
-        //     console.log("verifyTokenAndGetUserData: Token verificado com sucesso no backend.");
-        //     return { username: usernameForDisplay, userType, tokenValid: true };
-        // } catch (verifyError) {
-        //     console.error("verifyTokenAndGetUserData: Erro ao tentar verificar token no backend:", verifyError);
-        //     return { username: usernameForDisplay, userType, tokenValid: false };
-        // }
-        // Por ora, sem a chamada de verificação explícita:
+        const userType = (String(userIdFromPayload) === '1' || usernameForDisplay.toLowerCase() === 'felipeothon') ? 'admin' : 'mecanico';
         return { username: usernameForDisplay, userType, tokenValid: true };
-
     } catch (e) {
-        console.error("verifyTokenAndGetUserData: Erro ao decodificar token ou token já inválido:", e);
+        console.error("verifyTokenAndGetUserData: Erro ao decodificar token:", e);
         return { tokenValid: false, username: undefined, userType: undefined };
     }
 }
-
 
 async function handleLogin(event) {
     event.preventDefault();
     const usernameInput = document.getElementById('loginUsername');
     const passwordInput = document.getElementById('loginPassword');
-    const usernameVal = usernameInput.value; // Username digitado no formulário
+    const usernameVal = usernameInput.value;
     const password = passwordInput.value;
 
     if (loginErrorDiv) loginErrorDiv.style.display = 'none';
-    console.log(`Tentando login com username: ${usernameVal}`);
 
     try {
         const response = await fetch(`${apiUrlBase}/token/`, {
@@ -136,57 +105,48 @@ async function handleLogin(event) {
         if (response.ok && data.access) {
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
-            console.log("Tokens salvos no localStorage após login.");
-
-            // Passa o usernameVal (o nome de usuário do formulário) para verifyTokenAndGetUserData
-            // para que ele possa ser usado como usernameForDisplay se o token não tiver payload.username
             const userData = await verifyTokenAndGetUserData(data.access, usernameVal);
 
             if (userData && userData.tokenValid && userData.username) {
-                localStorage.setItem('username', userData.username); // Salva o usernameForDisplay
+                localStorage.setItem('username', userData.username);
                 localStorage.setItem('user_type', userData.userType);
-                console.log(`Login bem-sucedido. Username: ${userData.username}, UserType: ${userData.userType} salvos no localStorage.`);
-
                 if(usernameInput) usernameInput.value = '';
                 if(passwordInput) passwordInput.value = '';
                 await setupApplicationAfterLogin();
             } else {
-                console.error("Token obtido no login parece inválido ou dados do usuário (username) não puderam ser processados a partir do token.", userData);
                 handleLogout();
                 if (loginErrorDiv) {
-                    loginErrorDiv.textContent = "Erro ao processar informações do usuário após login.";
+                    loginErrorDiv.textContent = "Erro ao processar informações do usuário.";
                     loginErrorDiv.style.display = 'block';
                 }
             }
         } else {
-            const errorMessage = data.detail || `Usuário ou senha inválidos (status: ${response.status}).`;
-            console.error("Erro de login:", errorMessage, data);
+            const errorMessage = data.detail || `Usuário ou senha inválidos.`;
             if (loginErrorDiv) {
                 loginErrorDiv.textContent = errorMessage;
                 loginErrorDiv.style.display = 'block';
-            } else {
-                alert(errorMessage);
-            }
+            } else { alert(errorMessage); }
         }
     } catch (error) {
         console.error('Erro na requisição de login:', error);
-        const connErrorMessage = 'Erro de conexão ao tentar fazer login.';
         if (loginErrorDiv) {
-            loginErrorDiv.textContent = connErrorMessage;
+            loginErrorDiv.textContent = 'Erro de conexão ao tentar fazer login.';
             loginErrorDiv.style.display = 'block';
-        } else {
-            alert(connErrorMessage);
-        }
+        } else { alert('Erro de conexão.'); }
     }
 }
 
 export function handleLogout() {
-    console.log("Executando logout...");
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user_type');
     localStorage.removeItem('username');
     if (userInfoSpan) userInfoSpan.innerHTML = '';
+    if (window.fullCalendarInstance) {
+        window.fullCalendarInstance.destroy();
+        window.fullCalendarInstance = null;
+        calendarioAgendamentosPronto = false;
+    }
     showLoginScreen();
 }
 
@@ -198,58 +158,58 @@ function showMainScreen() {
 function showLoginScreen() {
     if (loginContainer) loginContainer.style.display = 'block';
     if (mainContentWrapper) mainContentWrapper.style.display = 'none';
-    if(inputBuscaGlobal) inputBuscaGlobal.value = '';
+    if(inputBuscaGlobal) {
+        inputBuscaGlobal.value = '';
+        inputBuscaGlobal.disabled = false;
+    }
     const adminPanelSection = document.getElementById('admin-panel-section');
     if(adminPanelSection) adminPanelSection.style.display = 'none';
     const adminUsuariosOption = document.querySelector("#selectTipoBusca option[value='admin_usuarios']");
     if (adminUsuariosOption) adminUsuariosOption.remove();
     if(selectTipoBusca && selectTipoBusca.options.length > 0) {
-        selectTipoBusca.value = 'clientes';
+        if (selectTipoBusca.value === 'admin_usuarios') {
+             selectTipoBusca.value = 'clientes';
+        }
     }
     atualizarPlaceholderBuscaGlobal();
 }
+
+let calendarioAgendamentosPronto = false;
 
 async function loadInitialData(tipo = 'clientes', searchTerm = '') {
     const token = localStorage.getItem('access_token');
     const currentUsername = localStorage.getItem('username');
     const currentUserType = localStorage.getItem('user_type');
 
-    if (!token || currentUsername === null || currentUserType === null) {
-        console.warn("loadInitialData: Token, username ou userType ausentes do localStorage. Deslogando.");
+    if (!token || !currentUsername || !currentUserType) {
         handleLogout();
         return;
     }
-
-    console.log(`loadInitialData - Tipo: ${tipo}, Termo: ${searchTerm || "Nenhum"}, Usuário: ${currentUsername} (${currentUserType})`);
     try {
-        switch (tipo) {
-            case 'clientes': await renderClientes(searchTerm); break;
-            case 'veiculos': await renderVeiculos(searchTerm); break;
-            case 'agendamentos': await renderAgendamentos(searchTerm); break;
-            case 'os': await renderOrdensDeServico(searchTerm); break;
-            case 'admin_usuarios':
-                 if (currentUserType === 'admin') await renderAdminUsuarios(searchTerm);
-                 else console.warn("Tentativa de carregar admin_usuarios por usuário não admin.");
-                 break;
-            default:
-                console.warn(`loadInitialData: Tipo de busca desconhecido '${tipo}'. Carregando clientes.`);
-                await renderClientes(searchTerm);
-        }
-
-        if (!searchTerm && tipo === 'clientes' && mainContentWrapper.style.display === 'block') {
-             console.log("loadInitialData: Carregando listas adicionais em paralelo (carga inicial e tela principal visível).");
-             const promises = [renderVeiculos(), renderAgendamentos(), renderOrdensDeServico()];
-             if (currentUserType === 'admin') {
-                if (selectTipoBusca && selectTipoBusca.value !== 'admin_usuarios') {
-                    promises.push(renderAdminUsuarios());
-                } else if (!selectTipoBusca) {
-                    promises.push(renderAdminUsuarios());
-                }
-             }
-             await Promise.all(promises);
+        if (tipo === 'agendamentos') {
+            if (calendarioAgendamentosPronto && window.fullCalendarInstance) {
+                 window.fullCalendarInstance.refetchEvents();
+            } else if (typeof inicializarCalendarioAgendamentos === "function" && !calendarioAgendamentosPronto) {
+                // Só inicializa se não estiver pronto. A chamada principal é em setupApplicationAfterLogin
+                // console.log("loadInitialData chamando inicializarCalendarioAgendamentos pois não estava pronto.");
+                // window.fullCalendarInstance = inicializarCalendarioAgendamentos();
+                // calendarioAgendamentosPronto = true;
+            }
+        } else {
+            switch (tipo) {
+                case 'clientes': await renderClientes(searchTerm); break;
+                case 'veiculos': await renderVeiculos(searchTerm); break;
+                case 'os': await renderOrdensDeServico(searchTerm); break;
+                case 'admin_usuarios':
+                     if (currentUserType === 'admin') await renderAdminUsuarios(searchTerm);
+                     break;
+                default:
+                     console.warn(`loadInitialData: Tipo de busca desconhecido '${tipo}'. Carregando clientes.`);
+                     await renderClientes(searchTerm);
+            }
         }
     } catch (error) {
-        console.error(`Erro ao carregar dados para tipo '${tipo}':`, error);
+        console.error(`Erro ao carregar dados para tipo '${tipo}' com termo '${searchTerm}':`, error);
     }
 }
 
@@ -258,7 +218,12 @@ function atualizarPlaceholderBuscaGlobal() {
         const tipoSelecionado = selectTipoBusca.value;
         if (tipoSelecionado === 'admin_usuarios') {
             inputBuscaGlobal.placeholder = "Buscar usuário por username, nome ou email...";
+            inputBuscaGlobal.disabled = false;
+        } else if (tipoSelecionado === 'agendamentos'){
+            inputBuscaGlobal.placeholder = "Filtros e navegação direto no calendário.";
+            inputBuscaGlobal.disabled = true;
         } else {
+            inputBuscaGlobal.disabled = false;
             inputBuscaGlobal.placeholder = placeholdersBusca[tipoSelecionado] || "Digite para buscar...";
         }
     }
@@ -268,13 +233,15 @@ async function executarBuscaGlobal() {
     if (!selectTipoBusca || !inputBuscaGlobal) return;
     const tipo = selectTipoBusca.value;
     const termo = inputBuscaGlobal.value.trim();
-    console.log(`Executando busca global em '${tipo}' por '${termo}'`);
-    const listaId = (tipo === 'admin_usuarios') ? 'lista-admin-usuarios' : `lista-${tipo}`;
+
+    if (tipo === 'agendamentos') {
+        console.log("Busca global para agendamentos: Ações são feitas no calendário.");
+        return;
+    }
+    const listaId = (tipo === 'admin_usuarios') ? 'lista-admin-usuarios' : `lista-${tipo.replace('os', 'ordens-servico')}`;
     const listaUI = document.getElementById(listaId);
     if (listaUI) {
         listaUI.innerHTML = `<li class="list-group-item">Buscando ${tipo.replace('_', ' ')}...</li>`;
-    } else {
-        console.warn(`Elemento de lista com ID '${listaId}' não encontrado para busca global.`);
     }
     await loadInitialData(tipo, termo);
 }
@@ -283,22 +250,39 @@ function limparBuscaGlobalEAtualizar() {
     if (!selectTipoBusca || !inputBuscaGlobal) return;
     inputBuscaGlobal.value = '';
     const tipo = selectTipoBusca.value;
-    console.log(`Limpando busca e atualizando para tipo: ${tipo}`);
-    loadInitialData(tipo);
+    if (tipo === 'agendamentos') {
+        // Nenhuma ação específica de recarga para o calendário ao limpar a busca global (que está desabilitada)
+    } else {
+        loadInitialData(tipo);
+    }
+    if (inputBuscaGlobal && !inputBuscaGlobal.disabled) {
+        inputBuscaGlobal.focus();
+    }
 }
 
 function setupBuscaGlobalListeners() {
     if (selectTipoBusca) {
         selectTipoBusca.addEventListener('change', () => {
-            console.log("Tipo de busca alterado para:", selectTipoBusca.value);
             atualizarPlaceholderBuscaGlobal();
+            const tipoSelecionado = selectTipoBusca.value;
             if(inputBuscaGlobal) inputBuscaGlobal.value = '';
-            executarBuscaGlobal();
-            if(inputBuscaGlobal) inputBuscaGlobal.focus();
+
+            if(tipoSelecionado !== 'agendamentos') {
+                executarBuscaGlobal();
+            } else {
+                 // Se mudou para agendamentos, o calendário já deve ter sido inicializado
+                 // por setupApplicationAfterLogin. Apenas garante que esteja visível.
+                 // Se quiser recarregar os eventos sempre que mudar para a aba agendamentos:
+                 if (calendarioAgendamentosPronto && window.fullCalendarInstance) {
+                    //  window.fullCalendarInstance.refetchEvents();
+                 }
+            }
+            if(inputBuscaGlobal && !inputBuscaGlobal.disabled) inputBuscaGlobal.focus();
         });
     }
     if (inputBuscaGlobal) {
         inputBuscaGlobal.addEventListener('keyup', () => {
+            if(selectTipoBusca.value === 'agendamentos' || inputBuscaGlobal.disabled) return;
             clearTimeout(debounceTimerGlobal);
             debounceTimerGlobal = setTimeout(executarBuscaGlobal, 500);
         });
@@ -323,6 +307,7 @@ function setupCommonEventListeners() {
     if (btnNovoAgendamento) btnNovoAgendamento.addEventListener('click', abrirModalNovoAgendamento);
     const btnSalvarAgendamento = document.getElementById('btnSalvarAgendamento');
     if (btnSalvarAgendamento) btnSalvarAgendamento.addEventListener('click', handleSalvarAgendamento);
+
     const agendamentoClienteSelect = document.getElementById('agendamentoCliente');
     if (agendamentoClienteSelect) {
         agendamentoClienteSelect.addEventListener('change', function() {
@@ -378,21 +363,21 @@ function setupCommonEventListeners() {
             }
             else if (id && targetButton.classList.contains('btn-editar-admin-usuario')) abrirModalEditarAdminUsuario(id);
             else if (id && targetButton.classList.contains('btn-toggle-status-admin-usuario')) {
-    const currentStatus = targetButton.dataset.currentIsActive;
-    handleToggleUserActiveStateAdmin(id, currentStatus);
-}
+                const currentStatus = targetButton.dataset.currentIsActive;
+                handleToggleUserActiveStateAdmin(id, currentStatus);
+            }
+
             const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
             if (osDetalhesModalElement && osDetalhesModalElement.contains(targetButton)) {
                 const osIdContext = osDetalhesModalElement.dataset.currentOsId;
                 const itemId = targetButton.dataset.itemId;
                 if (targetButton.id === 'btnAbrirModalAdicionarPecaOS' && osIdContext) abrirModalAdicionarPeca(osIdContext);
                 else if (targetButton.id === 'btnAbrirModalAdicionarServicoOS' && osIdContext) abrirModalAdicionarServico(osIdContext);
-                else if (itemId) {
-                    const osIdFromButton = targetButton.dataset.osId;
-                    if (targetButton.classList.contains('btn-editar-item-peca')) abrirModalEditarItemPeca(osIdFromButton, itemId);
-                    else if (targetButton.classList.contains('btn-editar-item-servico')) abrirModalEditarItemServico(osIdFromButton, itemId);
-                    else if (targetButton.classList.contains('btn-deletar-item-peca')) handleDeletarItemPeca(osIdFromButton, itemId);
-                    else if (targetButton.classList.contains('btn-deletar-item-servico')) handleDeletarItemServico(osIdFromButton, itemId);
+                else if (itemId && osIdContext) {
+                    if (targetButton.classList.contains('btn-editar-item-peca')) abrirModalEditarItemPeca(osIdContext, itemId);
+                    else if (targetButton.classList.contains('btn-editar-item-servico')) abrirModalEditarItemServico(osIdContext, itemId);
+                    else if (targetButton.classList.contains('btn-deletar-item-peca')) handleDeletarItemPeca(osIdContext, itemId);
+                    else if (targetButton.classList.contains('btn-deletar-item-servico')) handleDeletarItemServico(osIdContext, itemId);
                 }
             }
         });
@@ -412,16 +397,15 @@ function setupCommonEventListeners() {
     });
 }
 
+// FUNÇÃO ATUALIZADA
 async function setupApplicationAfterLogin() {
-    console.log("Executando setupApplicationAfterLogin...");
     showMainScreen();
 
     const username = localStorage.getItem('username');
     const userType = localStorage.getItem('user_type');
-    console.log(`setupApplicationAfterLogin - Valores atuais do localStorage - Username: ${username}, UserType: ${userType}`);
 
     if (!username || !userType) {
-        console.error("setupApplicationAfterLogin: Username ou UserType NÃO ENCONTRADOS no localStorage. Isso não deveria acontecer após um login bem-sucedido. Deslogando.");
+        console.error("setupApplicationAfterLogin: Dados de sessão ausentes. Deslogando.");
         handleLogout();
         return;
     }
@@ -437,15 +421,12 @@ async function setupApplicationAfterLogin() {
             changePassButton.textContent = 'Alterar Senha';
             userInfoSpan.appendChild(changePassButton);
         }
-    } else {
-        console.warn("Elemento userInfoSpan não encontrado no DOM.");
     }
 
     const adminPanelSection = document.getElementById('admin-panel-section');
     let adminUsuariosOption = document.querySelector("#selectTipoBusca option[value='admin_usuarios']");
 
     if (userType === 'admin') {
-        console.log("Usuário é admin. Configurando painel e opção de busca.");
         if (adminPanelSection) adminPanelSection.style.display = 'block';
         if (selectTipoBusca && !adminUsuariosOption) {
             const option = document.createElement('option');
@@ -454,44 +435,84 @@ async function setupApplicationAfterLogin() {
             selectTipoBusca.appendChild(option);
         }
     } else {
-        console.log("Usuário não é admin. Ocultando painel e removendo opção de busca.");
         if (adminPanelSection) adminPanelSection.style.display = 'none';
         if (adminUsuariosOption) adminUsuariosOption.remove();
     }
 
     atualizarPlaceholderBuscaGlobal();
 
+    if (userType !== 'admin' && selectTipoBusca && selectTipoBusca.value === 'admin_usuarios') {
+        selectTipoBusca.value = 'clientes';
+    }
     const tipoBuscaInicial = selectTipoBusca ? selectTipoBusca.value : 'clientes';
-    console.log("Carregando dados iniciais para a aba selecionada:", tipoBuscaInicial);
-    await loadInitialData(tipoBuscaInicial);
+    // console.log("Aba inicial selecionada para carregamento:", tipoBuscaInicial);
+
+    // 1. Carrega os dados da aba inicial (se não for 'agendamentos')
+    if (tipoBuscaInicial !== 'agendamentos') {
+        await loadInitialData(tipoBuscaInicial);
+    }
+
+    // 2. Inicializa o calendário (será feito apenas uma vez aqui)
+    if (!calendarioAgendamentosPronto && typeof inicializarCalendarioAgendamentos === "function") {
+        // console.log("Inicializando o calendário de agendamentos em setupApplicationAfterLogin...");
+        window.fullCalendarInstance = inicializarCalendarioAgendamentos();
+        calendarioAgendamentosPronto = true;
+    }
+    // Se a aba inicial for 'agendamentos', o calendário já está pronto.
+    // Se loadInitialData foi chamado para 'agendamentos', ele pode ter tentado refetch, o que é ok.
+
+    // 3. Carrega as outras seções principais em paralelo
+    // console.log("Iniciando carregamento paralelo de outras seções...");
+    const promisesToLoadInParallel = [];
+    const todasAsSecoes = {
+        'clientes': renderClientes,
+        'veiculos': renderVeiculos,
+        'os': renderOrdensDeServico,
+        'admin_usuarios': userType === 'admin' ? renderAdminUsuarios : null
+    };
+
+    for (const secao in todasAsSecoes) {
+        if (secao !== tipoBuscaInicial && secao !== 'agendamentos' && todasAsSecoes[secao]) {
+            // console.log(`Adicionando ${secao} ao carregamento paralelo.`);
+            promisesToLoadInParallel.push(todasAsSecoes[secao]().catch(e => console.error(`Erro ao renderizar ${secao} em paralelo:`, e)));
+        }
+    }
+
+    if (promisesToLoadInParallel.length > 0) {
+        await Promise.all(promisesToLoadInParallel);
+        // console.log("Carregamento paralelo concluído.");
+    } else {
+        // console.log("Nenhuma seção adicional para carregamento paralelo ou aba de agendamentos é a inicial.");
+    }
 }
 
 
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("DOM completamente carregado e parseado.");
+    // console.log("DOM completamente carregado e parseado.");
     if (formLogin) formLogin.addEventListener('submit', handleLogin);
     if (btnLogout) btnLogout.addEventListener('click', handleLogout);
 
     setupCommonEventListeners();
     setupBuscaGlobalListeners();
 
+    if (typeof setupRelatoriosListeners === "function") { // Configura listeners dos relatórios
+        setupRelatoriosListeners();
+    }
+
     const token = localStorage.getItem('access_token');
     if (token) {
-        console.log("Token encontrado no localStorage na carga inicial. Verificando...");
-        const usernameFromStorage = localStorage.getItem('username'); // Pega username se já existir
+        const usernameFromStorage = localStorage.getItem('username');
         const userData = await verifyTokenAndGetUserData(token, usernameFromStorage);
 
         if (userData && userData.tokenValid && userData.username) {
             localStorage.setItem('username', userData.username);
             localStorage.setItem('user_type', userData.userType);
-            console.log("Token verificado na carga inicial. Username e UserType definidos/confirmados no localStorage. Configurando aplicação...");
             await setupApplicationAfterLogin();
         } else {
-            console.warn("Token encontrado na carga inicial mas inválido ou dados do usuário (username) não puderam ser obtidos do token. Deslogando.");
+            console.warn("Token inválido ou dados do usuário não obtidos na carga. Deslogando.");
             handleLogout();
         }
     } else {
-        console.log("Nenhum token encontrado no localStorage na carga inicial. Mostrando tela de login.");
         showLoginScreen();
     }
 });

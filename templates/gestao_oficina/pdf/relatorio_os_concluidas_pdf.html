@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Ordens de Serviço Concluídas</title>
+    <style>
+        @font-face {
+            font-family: "DejaVu Sans";
+            /* Tente um caminho mais genérico ou garanta que a fonte esteja acessível ao xhtml2pdf */
+            /* Exemplos de caminhos (ajuste conforme seu ambiente de deploy/desenvolvimento):
+               - Para Linux: src: url("file:///usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+               - Para Windows, poderia ser algo como: src: url("file:///C:/Windows/Fonts/Arial.ttf"); (substitua Arial por uma fonte unicode)
+               Se estiver usando Docker, garanta que a fonte esteja na imagem.
+            */
+            /* Se o caminho absoluto não funcionar bem em todos os ambientes,
+               você pode precisar de uma solução para servir fontes estáticas ou usar fontes padrão do PDF.
+               Por ora, vamos tentar com um caminho comum de Linux. Se der erro de fonte, precisaremos ajustar.
+            */
+            src: url("file:///usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
+        }
+        body {
+            font-family: "DejaVu Sans", sans-serif;
+            margin: 20px;
+            font-size: 10pt;
+        }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h2 { margin-bottom: 5px; }
+        .header p { margin: 2px 0; font-size: 9pt; }
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            font-size: 14pt;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #888;
+            padding: 6px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            font-size: 8pt;
+            margin-top: 30px;
+            /* position: fixed;  Para tabelas longas, 'fixed' pode sobrepor conteúdo. Melhor deixar fluir. */
+            /* bottom: 0; */
+            width: 100%;
+        }
+        .summary {
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #333;
+            font-size: 11pt;
+        }
+        .summary p {
+            margin: 5px 0;
+        }
+        .no-data {
+            text-align: center;
+            font-style: italic;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>OFICINAPRO</h2>
+        <p>Rua Fictícia, 123 - Bairro Exemplo - Cidade, UF</p>
+        <p>Telefone: (XX) XXXX-XXXX | Email: contato@oficinapro.com</p>
+    </div>
+
+    <h1>
+        {% if titulo_relatorio %}
+            {{ titulo_relatorio }}
+        {% else %}
+            Relatório de Ordens de Serviço Concluídas
+        {% endif %}
+    </h1>
+    <p style="text-align: center; margin-bottom: 20px;">
+        <strong>Período:</strong> {{ data_inicio|date:"d/m/Y" }} - {{ data_fim|date:"d/m/Y" }}
+    </p>
+
+    {% if ordens_de_servico %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Nº OS</th>
+                    <th>Cliente</th>
+                    <th>Veículo (Placa)</th>
+                    <th>Data Entrada</th>
+                    <th>Data Conclusão</th>
+                    <th style="text-align: right;">Valor Total (R$)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for os in ordens_de_servico %}
+                <tr>
+                    <td>{{ os.numero_os }}</td>
+                    <td>{{ os.cliente.nome_completo }}</td>
+                    <td>{{ os.veiculo.marca }} {{ os.veiculo.modelo }} ({{ os.veiculo.placa }})</td>
+                    <td>{{ os.data_entrada|date:"d/m/Y" }}</td>
+                    <td>{{ os.data_conclusao|date:"d/m/Y H:i" }}</td> {# Adicionada hora na conclusão #}
+                    <td style="text-align: right;">{{ os.valor_total_os|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="summary">
+            <p><strong>Total de Ordens de Serviço Processadas no Período:</strong> {{ total_os_processadas }}</p>
+            {% if total_faturamento is not None %} {# Verifica se a variável existe no contexto #}
+                <p><strong>Faturamento Total no Período (OS Concluídas/Faturadas):</strong> R$ {{ total_faturamento|floatformat:2 }}</p>
+            {% endif %}
+        </div>
+    {% else %}
+        <p class="no-data">Nenhuma Ordem de Serviço encontrada para os critérios e período informados.</p>
+    {% endif %}
+
+    <div class="footer">
+        <p>Relatório gerado em: {% now "d/m/Y H:i" %} - OficinaPRO</p>
+    </div>
+</body>
+</html>

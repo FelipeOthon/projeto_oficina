@@ -9,27 +9,35 @@ from .serializers import (
     ClienteSerializer, VeiculoSerializer, AgendamentoSerializer,
     OrdemDeServicoSerializer, ItemOsPecaSerializer, ItemOsServicoSerializer,
     MecanicoSerializer,
-    AdminUserManagementSerializer, # Adicionado
-    MecanicoChangePasswordSerializer # Adicionado
+    AdminUserManagementSerializer,
+    MecanicoChangePasswordSerializer
 )
-from rest_framework import generics
+from rest_framework import generics, views, status
 from rest_framework.response import Response
-from rest_framework import status
-from django.db import IntegrityError
+from django.db import IntegrityError, models as django_models
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from .permissions import IsAdminUser, IsAdminOrMecanico, AdminFullAccessMecanicoReadOnly, IsMecanicoUser # Adicionado IsMecanicoUser
+from .permissions import IsAdminUser, IsAdminOrMecanico, AdminFullAccessMecanicoReadOnly, IsMecanicoUser
 
-# Imports para PDF
 from django.http import HttpResponse
 from django.template.loader import get_template
 from xhtml2pdf import pisa
 from django.shortcuts import get_object_or_404
-
-# IMPORTAR SearchFilter
 from rest_framework.filters import SearchFilter
-
-# Para manter o usuário logado após mudar senha
 from django.contrib.auth import update_session_auth_hash
+from datetime import datetime, time as datetime_time  # Adicionado time
+
+
+# --- FUNÇÃO UTILITÁRIA PARA RENDERIZAR PDF (AJUSTADA PARA FILENAME) ---
+def render_pdf_view(template_path, context_dict={}, filename="documento.pdf"):
+    template = get_template(template_path)
+    html = template.render(context_dict)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="{filename}"'  # Usa o filename fornecido
+
+    pisa_status = pisa.CreatePDF(html, dest=response)
+    if pisa_status.err:
+        return HttpResponse('Ocorreu um erro ao gerar o PDF <pre>' + html + '</pre>')
+    return response
 
 
 # --- VIEWS DE CLIENTE ---
@@ -97,15 +105,9 @@ class AgendamentoListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAdminOrMecanico]
     filter_backends = [SearchFilter]
     search_fields = [
-        'cliente__nome_completo',
-        'veiculo__placa',
-        'veiculo__marca',
-        'veiculo__modelo',
-        'servico_solicitado',
-        'status_agendamento',
-        'mecanico_atribuido__username',
-        'mecanico_atribuido__first_name',
-        'mecanico_atribuido__last_name'
+        'cliente__nome_completo', 'veiculo__placa', 'veiculo__marca', 'veiculo__modelo',
+        'servico_solicitado', 'status_agendamento', 'mecanico_atribuido__username',
+        'mecanico_atribuido__first_name', 'mecanico_atribuido__last_name'
     ]
 
 
@@ -131,17 +133,9 @@ class OrdemDeServicoListCreateAPIView(generics.ListCreateAPIView):
     permission_classes = [IsAdminOrMecanico]
     filter_backends = [SearchFilter]
     search_fields = [
-        'numero_os',
-        'cliente__nome_completo',
-        'veiculo__placa',
-        'veiculo__marca',
-        'veiculo__modelo',
-        'status_os',
-        'descricao_problema_cliente',
-        'diagnostico_mecanico',
-        'mecanico_responsavel__username',
-        'mecanico_responsavel__first_name',
-        'mecanico_responsavel__last_name'
+        'numero_os', 'cliente__nome_completo', 'veiculo__placa', 'veiculo__marca', 'veiculo__modelo',
+        'status_os', 'descricao_problema_cliente', 'diagnostico_mecanico',
+        'mecanico_responsavel__username', 'mecanico_responsavel__first_name', 'mecanico_responsavel__last_name'
     ]
 
 
@@ -160,18 +154,16 @@ class OrdemDeServicoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyA
         return [IsAdminOrMecanico()]
 
 
-# --- VIEWS PARA ITENS DE PEÇAS DE UMA OS ---
+# --- VIEWS PARA ITENS DE PEÇAS E SERVIÇOS (mantidas como estavam) ---
 class ItemOsPecaListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ItemOsPecaSerializer
     permission_classes = [IsAdminOrMecanico]
 
     def get_queryset(self):
-        os_pk = self.kwargs['os_pk']
-        return ItemOsPeca.objects.filter(ordem_servico_id=os_pk)
+        return ItemOsPeca.objects.filter(ordem_servico_id=self.kwargs['os_pk'])
 
     def perform_create(self, serializer):
-        os_pk = self.kwargs['os_pk']
-        ordem_servico = get_object_or_404(OrdemDeServico, pk=os_pk)
+        ordem_servico = get_object_or_404(OrdemDeServico, pk=self.kwargs['os_pk'])
         serializer.save(ordem_servico=ordem_servico)
 
 
@@ -181,22 +173,18 @@ class ItemOsPecaRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIVi
     permission_classes = [IsAdminOrMecanico]
 
     def get_queryset(self):
-        os_pk = self.kwargs['os_pk']
-        return ItemOsPeca.objects.filter(ordem_servico_id=os_pk)
+        return ItemOsPeca.objects.filter(ordem_servico_id=self.kwargs['os_pk'])
 
 
-# --- VIEWS PARA ITENS DE SERVIÇOS DE UMA OS ---
 class ItemOsServicoListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = ItemOsServicoSerializer
     permission_classes = [IsAdminOrMecanico]
 
     def get_queryset(self):
-        os_pk = self.kwargs['os_pk']
-        return ItemOsServico.objects.filter(ordem_servico_id=os_pk)
+        return ItemOsServico.objects.filter(ordem_servico_id=self.kwargs['os_pk'])
 
     def perform_create(self, serializer):
-        os_pk = self.kwargs['os_pk']
-        ordem_servico = get_object_or_404(OrdemDeServico, pk=os_pk)
+        ordem_servico = get_object_or_404(OrdemDeServico, pk=self.kwargs['os_pk'])
         serializer.save(ordem_servico=ordem_servico)
 
 
@@ -206,67 +194,44 @@ class ItemOsServicoRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAP
     permission_classes = [IsAdminOrMecanico]
 
     def get_queryset(self):
-        os_pk = self.kwargs['os_pk']
-        return ItemOsServico.objects.filter(ordem_servico_id=os_pk)
+        return ItemOsServico.objects.filter(ordem_servico_id=self.kwargs['os_pk'])
 
 
 # --- VIEW PARA LISTAR MECÂNICOS ---
 class MecanicoListAPIView(generics.ListAPIView):
-    queryset = Usuario.objects.filter(tipo_usuario='mecanico', is_active=True).order_by('first_name', 'last_name', 'username') # Listar apenas mecanicos ativos
+    queryset = Usuario.objects.filter(tipo_usuario='mecanico', is_active=True).order_by('first_name', 'last_name',
+                                                                                        'username')
     serializer_class = MecanicoSerializer
     permission_classes = [IsAdminOrMecanico]
 
 
-# --- FUNÇÃO UTILITÁRIA PARA RENDERIZAR PDF ---
-def render_pdf_view(template_path, context_dict={}):
-    template = get_template(template_path)
-    html = template.render(context_dict)
-    response = HttpResponse(content_type='application/pdf')
-
-    os_object = context_dict.get('os')
-    numero_da_os = "documento"
-    if os_object and hasattr(os_object, 'numero_os') and os_object.numero_os:
-        numero_da_os = str(os_object.numero_os).replace('/', '_').replace('\\', '_')
-    elif os_object and hasattr(os_object, 'id'):
-        numero_da_os = f"id_{os_object.id}"
-
-
-    filename = f"os_{numero_da_os}.pdf"
-    response['Content-Disposition'] = f'inline; filename="{filename}"'
-
-    pisa_status = pisa.CreatePDF(
-        html, dest=response
-    )
-    if pisa_status.err:
-        return HttpResponse('Ocorreu um erro ao gerar o PDF <pre>' + html + '</pre>')
-    return response
-
-
-# --- VIEW PARA GERAR PDF DA ORDEM DE SERVIÇO ---
+# --- VIEW PARA GERAR PDF DA ORDEM DE SERVIÇO INDIVIDUAL ---
 class OrdemDeServicoPDFView(generics.GenericAPIView):
     queryset = OrdemDeServico.objects.select_related(
         'cliente', 'veiculo', 'mecanico_responsavel'
-    ).prefetch_related(
-        'itens_pecas',
-        'itens_servicos'
-    ).all()
-    permission_classes = [IsAdminOrMecanico] # Ou AllowAny se o PDF puder ser acessado sem login, dependendo do fluxo
-    serializer_class = OrdemDeServicoSerializer # Necessário para o get_object_or_404 funcionar bem com GenericAPIView
+    ).prefetch_related('itens_pecas', 'itens_servicos').all()
+    permission_classes = [IsAdminOrMecanico]
+    serializer_class = OrdemDeServicoSerializer
     lookup_field = 'pk'
 
     def get(self, request, *args, **kwargs):
-        os_instance = get_object_or_404(self.get_queryset(), pk=kwargs.get(self.lookup_field))
-        # Adicionar uma verificação se o PDF deve ser público ou se requer autenticação/permissão específica
+        os_instance = self.get_object()  # get_object_or_404 é chamado por get_object
         context = {'os': os_instance}
-        pdf = render_pdf_view('gestao_oficina/pdf/os_pdf_template.html', context)
+
+        numero_da_os = str(os_instance.numero_os).replace('/', '_').replace('\\',
+                                                                            '_') if os_instance.numero_os else f"id_{os_instance.id}"
+        filename = f"OS_{numero_da_os}.pdf"
+
+        pdf = render_pdf_view('gestao_oficina/pdf/os_pdf_template.html', context, filename=filename)
         return pdf
 
-# --- ADIÇÕES PARA GERENCIAMENTO DE USUÁRIOS (ADMIN) ---
+
+# --- VIEWS DE GERENCIAMENTO DE USUÁRIOS (ADMIN) ---
 class AdminUserListCreateAPIView(generics.ListCreateAPIView):
-    queryset = Usuario.objects.all().order_by('username') # Poderia filtrar por is_active=True por padrão e ter um query param para ver inativos
+    queryset = Usuario.objects.all().order_by('username')
     serializer_class = AdminUserManagementSerializer
     permission_classes = [IsAdminUser]
-    filter_backends = [SearchFilter] # Adicionado filtro de busca
+    filter_backends = [SearchFilter]
     search_fields = ['username', 'first_name', 'last_name', 'email']
 
 
@@ -277,48 +242,126 @@ class AdminUserRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIVie
     lookup_field = 'pk'
 
     def perform_destroy(self, instance):
-        """
-        Em vez de deletar fisicamente, apenas desativa o usuário (soft delete).
-        """
-        # Adicionar verificação para não desativar o próprio usuário admin logado se for o único superuser ativo
         if instance.is_superuser and self.request.user == instance:
             active_superusers = Usuario.objects.filter(is_superuser=True, is_active=True).count()
             if active_superusers <= 1:
-                # Não é ideal retornar Response aqui, mas é uma forma de bloquear.
-                # Uma abordagem melhor seria com permissions ou no método destroy.
-                # Para este contexto, vamos impedir a desativação.
-                # No DRF, perform_destroy não deve retornar Response.
-                # Levantar uma exceção como PermissionDenied seria mais apropriado.
-                # serializers.ValidationError({"detail": "Não é possível desativar o único superusuário ativo."})
-                # Como estamos dentro de perform_destroy, simplesmente não fazer nada ou logar.
-                # A proteção mais efetiva é no botão do frontend e na permissão da view.
-                print(f"Tentativa de desativar o único superusuário ativo (ID: {instance.id}) por ele mesmo. Ação impedida em perform_destroy.")
-                return # Impede a desativação
-
+                print(
+                    f"Tentativa de desativar o único superusuário ativo (ID: {instance.id}) por ele mesmo. Ação impedida.")
+                # Para realmente impedir, poderíamos levantar uma exceção:
+                # from rest_framework.exceptions import PermissionDenied
+                # raise PermissionDenied("Não é possível desativar o único superusuário ativo.")
+                return
         instance.is_active = False
         instance.save()
-        # Não chamamos super().perform_destroy(instance) para evitar a exclusão física
 
-    # O método update (PUT/PATCH) já permitirá alterar 'is_active' para True,
-    # pois AdminUserManagementSerializer inclui 'is_active' nos fields.
 
 # --- VIEW PARA MECÂNICO ALTERAR A PRÓPRIA SENHA ---
 class MecanicoChangePasswordView(generics.UpdateAPIView):
     serializer_class = MecanicoChangePasswordSerializer
     model = Usuario
-    permission_classes = [IsAuthenticated, IsMecanicoUser] # Apenas mecânicos autenticados
+    permission_classes = [IsAuthenticated, IsMecanicoUser]
 
     def get_object(self, queryset=None):
-        # Retorna o usuário logado
         return self.request.user
 
     def update(self, request, *args, **kwargs):
         self.object = self.get_object()
         serializer = self.get_serializer(data=request.data)
-
         if serializer.is_valid():
             serializer.save()
-            update_session_auth_hash(request, self.object) # Manter o usuário logado
+            update_session_auth_hash(request, self.object)
             return Response({"detail": "Senha alterada com sucesso."}, status=status.HTTP_200_OK)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# --- NOVAS VIEWS PARA RELATÓRIOS ---
+class RelatorioOSConcluidasPDFView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        data_inicio_str = request.query_params.get('data_inicio', None)
+        data_fim_str = request.query_params.get('data_fim', None)
+
+        if not data_inicio_str or not data_fim_str:
+            return Response(
+                {"detail": "Parâmetros 'data_inicio' e 'data_fim' (YYYY-MM-DD) são obrigatórios."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            data_inicio = datetime.strptime(data_inicio_str, "%Y-%m-%d").date()
+            data_fim_obj = datetime.strptime(data_fim_str, "%Y-%m-%d")
+            # Para incluir OS concluídas no dia final, usamos o final do dia
+            data_fim_para_filtro = datetime.combine(data_fim_obj.date(), datetime_time.max)
+        except ValueError:
+            return Response(
+                {"detail": "Formato de data inválido para 'data_inicio' ou 'data_fim'. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Considerar OS 'Concluida' ou 'Faturada' para este relatório
+        status_relatorio = ['Concluida', 'Faturada']
+        ordens_concluidas = OrdemDeServico.objects.filter(
+            status_os__in=status_relatorio,
+            data_conclusao__date__gte=data_inicio,  # Filtra pela data de conclusão
+            data_conclusao__date__lte=data_fim_obj.date()  # Filtra pela data de conclusão
+        ).select_related('cliente', 'veiculo').order_by('data_conclusao', 'numero_os')
+
+        context = {
+            'ordens_de_servico': ordens_concluidas,
+            'data_inicio': data_inicio,
+            'data_fim': data_fim_obj.date(),  # Passa a data (sem hora) para o template
+            'total_os_processadas': ordens_concluidas.count(),  # Nome mais genérico para o template
+            'titulo_relatorio': "Relatório de Ordens de Serviço Concluídas/Faturadas"
+        }
+
+        filename = f"Relatorio_OS_Concluidas_{data_inicio_str}_a_{data_fim_str}.pdf"
+        pdf = render_pdf_view('gestao_oficina/pdf/relatorio_os_concluidas_pdf.html', context, filename=filename)
+        return pdf
+
+
+class RelatorioFaturamentoPDFView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        data_inicio_str = request.query_params.get('data_inicio', None)
+        data_fim_str = request.query_params.get('data_fim', None)
+
+        if not data_inicio_str or not data_fim_str:
+            return Response(
+                {"detail": "Parâmetros 'data_inicio' e 'data_fim' (YYYY-MM-DD) são obrigatórios."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            data_inicio = datetime.strptime(data_inicio_str, "%Y-%m-%d").date()
+            data_fim_obj = datetime.strptime(data_fim_str, "%Y-%m-%d")
+            data_fim_para_filtro = datetime.combine(data_fim_obj.date(), datetime_time.max)
+        except ValueError:
+            return Response(
+                {"detail": "Formato de data inválido para 'data_inicio' ou 'data_fim'. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        status_faturamento = ['Concluida', 'Faturada']
+
+        ordens_para_faturamento = OrdemDeServico.objects.filter(
+            status_os__in=status_faturamento,
+            data_conclusao__date__gte=data_inicio,  # Usar data_conclusao para faturamento
+            data_conclusao__date__lte=data_fim_obj.date()
+        ).select_related('cliente', 'veiculo')
+
+        total_faturado = ordens_para_faturamento.aggregate(total=django_models.Sum('valor_total_os'))['total'] or 0.00
+
+        context = {
+            'ordens_de_servico': ordens_para_faturamento.order_by('data_conclusao', 'numero_os'),
+            'data_inicio': data_inicio,
+            'data_fim': data_fim_obj.date(),
+            'total_os_processadas': ordens_para_faturamento.count(),
+            'total_faturamento': total_faturado,
+            'titulo_relatorio': "Relatório de Faturamento"
+        }
+
+        filename = f"Relatorio_Faturamento_{data_inicio_str}_a_{data_fim_str}.pdf"
+        # Pode reutilizar o template ou criar um específico para faturamento.
+        # Se criar um específico, altere o nome do template aqui.
+        pdf = render_pdf_view('gestao_oficina/pdf/relatorio_os_concluidas_pdf.html', context, filename=filename)
+        return pdf

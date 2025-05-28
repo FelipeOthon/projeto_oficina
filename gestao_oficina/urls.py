@@ -15,10 +15,12 @@ from .views import (
     ItemOsServicoRetrieveUpdateDestroyAPIView,
     MecanicoListAPIView,
     OrdemDeServicoPDFView,
-    # --- ADIÇÕES ---
     AdminUserListCreateAPIView,
     AdminUserRetrieveUpdateDestroyAPIView,
-    MecanicoChangePasswordView
+    MecanicoChangePasswordView,
+    # --- VIEWS DE RELATÓRIO IMPORTADAS ---
+    RelatorioOSConcluidasPDFView,
+    RelatorioFaturamentoPDFView
 )
 
 app_name = 'gestao_oficina'
@@ -54,11 +56,15 @@ urlpatterns = [
     path('ordens-servico/<int:os_pk>/servicos/<int:item_pk>/', ItemOsServicoRetrieveUpdateDestroyAPIView.as_view(),
          name='itemosservico-detail-update-delete'),
 
-    # URL para listar mecânicos (já existente)
+    # URL para listar mecânicos
     path('usuarios/mecanicos/', MecanicoListAPIView.as_view(), name='mecanico-list'),
 
-    # --- NOVAS URLS PARA GERENCIAMENTO DE USUÁRIOS ---
+    # URLs para Gerenciamento de Usuários
     path('admin/usuarios/', AdminUserListCreateAPIView.as_view(), name='admin-user-list-create'),
     path('admin/usuarios/<int:pk>/', AdminUserRetrieveUpdateDestroyAPIView.as_view(), name='admin-user-detail-update-delete'),
     path('usuarios/mudar-senha/', MecanicoChangePasswordView.as_view(), name='mecanico-change-password'),
+
+    # --- NOVAS URLS PARA RELATÓRIOS ---
+    path('relatorios/os-concluidas/pdf/', RelatorioOSConcluidasPDFView.as_view(), name='relatorio-os-concluidas-pdf'),
+    path('relatorios/faturamento/pdf/', RelatorioFaturamentoPDFView.as_view(), name='relatorio-faturamento-pdf'),
 ]
