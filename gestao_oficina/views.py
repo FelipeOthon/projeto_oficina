@@ -25,7 +25,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework.filters import SearchFilter
 from django.contrib.auth import update_session_auth_hash
 from datetime import datetime, time as datetime_time  # Adicionado time
-
+from django.utils import timezone
 
 # --- FUNÇÃO UTILITÁRIA PARA RENDERIZAR PDF (AJUSTADA PARA FILENAME) ---
 def render_pdf_view(template_path, context_dict={}, filename="documento.pdf"):
@@ -275,6 +275,7 @@ class MecanicoChangePasswordView(generics.UpdateAPIView):
 
 
 # --- NOVAS VIEWS PARA RELATÓRIOS ---
+# --- VIEWS PARA RELATÓRIOS (COM CORREÇÃO FINAL NA LÓGICA DE DATA) ---
 class RelatorioOSConcluidasPDFView(views.APIView):
     permission_classes = [IsAdminUser]
 
@@ -288,29 +289,33 @@ class RelatorioOSConcluidasPDFView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         try:
-            data_inicio = datetime.strptime(data_inicio_str, "%Y-%m-%d").date()
-            data_fim_obj = datetime.strptime(data_fim_str, "%Y-%m-%d")
-            # Para incluir OS concluídas no dia final, usamos o final do dia
-            data_fim_para_filtro = datetime.combine(data_fim_obj.date(), datetime_time.max)
+            data_inicio_date = datetime.strptime(data_inicio_str, "%Y-%m-%d").date()
+            data_fim_date = datetime.strptime(data_fim_str, "%Y-%m-%d").date()
+
+            # --- CORREÇÃO APLICADA AQUI ---
+            # Usa datetime_time.min e datetime_time.max que foram importados corretamente
+            start_datetime = timezone.make_aware(datetime.combine(data_inicio_date, datetime_time.min))
+            end_datetime = timezone.make_aware(datetime.combine(data_fim_date, datetime_time.max))
+
         except ValueError:
             return Response(
                 {"detail": "Formato de data inválido para 'data_inicio' ou 'data_fim'. Use YYYY-MM-DD."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Considerar OS 'Concluida' ou 'Faturada' para este relatório
         status_relatorio = ['Concluida', 'Faturada']
+
         ordens_concluidas = OrdemDeServico.objects.filter(
             status_os__in=status_relatorio,
-            data_conclusao__date__gte=data_inicio,  # Filtra pela data de conclusão
-            data_conclusao__date__lte=data_fim_obj.date()  # Filtra pela data de conclusão
+            data_conclusao__gte=start_datetime,
+            data_conclusao__lte=end_datetime
         ).select_related('cliente', 'veiculo').order_by('data_conclusao', 'numero_os')
 
         context = {
             'ordens_de_servico': ordens_concluidas,
-            'data_inicio': data_inicio,
-            'data_fim': data_fim_obj.date(),  # Passa a data (sem hora) para o template
-            'total_os_processadas': ordens_concluidas.count(),  # Nome mais genérico para o template
+            'data_inicio': data_inicio_date,
+            'data_fim': data_fim_date,
+            'total_os_processadas': ordens_concluidas.count(),
             'titulo_relatorio': "Relatório de Ordens de Serviço Concluídas/Faturadas"
         }
 
@@ -332,9 +337,14 @@ class RelatorioFaturamentoPDFView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         try:
-            data_inicio = datetime.strptime(data_inicio_str, "%Y-%m-%d").date()
-            data_fim_obj = datetime.strptime(data_fim_str, "%Y-%m-%d")
-            data_fim_para_filtro = datetime.combine(data_fim_obj.date(), datetime_time.max)
+            data_inicio_date = datetime.strptime(data_inicio_str, "%Y-%m-%d").date()
+            data_fim_date = datetime.strptime(data_fim_str, "%Y-%m-%d").date()
+
+            # --- CORREÇÃO APLICADA AQUI ---
+            # Usa datetime_time.min e datetime_time.max que foram importados corretamente
+            start_datetime = timezone.make_aware(datetime.combine(data_inicio_date, datetime_time.min))
+            end_datetime = timezone.make_aware(datetime.combine(data_fim_date, datetime_time.max))
+
         except ValueError:
             return Response(
                 {"detail": "Formato de data inválido para 'data_inicio' ou 'data_fim'. Use YYYY-MM-DD."},
@@ -345,23 +355,21 @@ class RelatorioFaturamentoPDFView(views.APIView):
 
         ordens_para_faturamento = OrdemDeServico.objects.filter(
             status_os__in=status_faturamento,
-            data_conclusao__date__gte=data_inicio,  # Usar data_conclusao para faturamento
-            data_conclusao__date__lte=data_fim_obj.date()
+            data_conclusao__gte=start_datetime,
+            data_conclusao__lte=end_datetime
         ).select_related('cliente', 'veiculo')
 
         total_faturado = ordens_para_faturamento.aggregate(total=django_models.Sum('valor_total_os'))['total'] or 0.00
 
         context = {
             'ordens_de_servico': ordens_para_faturamento.order_by('data_conclusao', 'numero_os'),
-            'data_inicio': data_inicio,
-            'data_fim': data_fim_obj.date(),
+            'data_inicio': data_inicio_date,
+            'data_fim': data_fim_date,
             'total_os_processadas': ordens_para_faturamento.count(),
             'total_faturamento': total_faturado,
             'titulo_relatorio': "Relatório de Faturamento"
         }
 
         filename = f"Relatorio_Faturamento_{data_inicio_str}_a_{data_fim_str}.pdf"
-        # Pode reutilizar o template ou criar um específico para faturamento.
-        # Se criar um específico, altere o nome do template aqui.
         pdf = render_pdf_view('gestao_oficina/pdf/relatorio_os_concluidas_pdf.html', context, filename=filename)
         return pdf

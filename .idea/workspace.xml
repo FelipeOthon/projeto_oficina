@@ -6,8 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="6ddb8d25-419f-4653-b538-52ae18089593" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/main.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/gestao_oficina/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/gestao_oficina/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -115,6 +115,7 @@
       <workItem from="1748434013704" duration="15791000" />
       <workItem from="1748470735832" duration="3803000" />
       <workItem from="1748520878731" duration="2374000" />
+      <workItem from="1748605024741" duration="2730000" />
     </task>
     <servers />
   </component>
@@ -126,7 +127,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js</url>
-          <line>574</line>
+          <line>535</line>
           <option name="timeStamp" value="2" />
         </line-breakpoint>
       </breakpoints>

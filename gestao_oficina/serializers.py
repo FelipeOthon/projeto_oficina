@@ -1,15 +1,16 @@
 # gestao_oficina/serializers.py
 from rest_framework import serializers
+from django.utils import timezone  # <<< GARANTA QUE ESTE IMPORT ESTÁ AQUI
 from .models import (
     Cliente,
     Veiculo,
-    Usuario,  # Certifique-se que Usuario está importado
+    Usuario,
     Agendamento,
     OrdemDeServico,
     ItemOsPeca,
     ItemOsServico
 )
-from django.contrib.auth.hashers import make_password  # Para hashear a senha
+from django.contrib.auth.hashers import make_password
 
 
 class ClienteSerializer(serializers.ModelSerializer):
@@ -81,6 +82,7 @@ class MecanicoSerializer(serializers.ModelSerializer):
         return obj.username
 
 
+# >>>>> CLASSE COM A CORREÇÃO <<<<<
 class OrdemDeServicoSerializer(serializers.ModelSerializer):
     cliente_nome = serializers.CharField(source='cliente.nome_completo', read_only=True)
     veiculo_info = serializers.CharField(source='veiculo.__str__', read_only=True)
@@ -103,12 +105,34 @@ class OrdemDeServicoSerializer(serializers.ModelSerializer):
             'status_os', 'observacoes_internas',
             'itens_pecas', 'itens_servicos',
         ]
+        # Torna 'data_conclusao' "read-only" para o usuário, pois será controlada pelo sistema
         read_only_fields = (
             'numero_os',
             'data_entrada', 'cliente_nome', 'veiculo_info', 'mecanico_nome',
             'itens_pecas', 'itens_servicos',
-            'valor_total_pecas', 'valor_total_servicos', 'valor_total_os'
+            'valor_total_pecas', 'valor_total_servicos', 'valor_total_os',
+            'data_conclusao'
         )
+
+    # --- LÓGICA ADICIONADA PARA CORRIGIR O PROBLEMA DO RELATÓRIO ---
+    def update(self, instance, validated_data):
+        """
+        Sobrescreve o método update para preencher ou limpar a data_conclusao automaticamente
+        baseado na mudança de status da OS.
+        """
+        # Pega o status que está vindo na requisição. Se não vier, usa o que já está na OS
+        novo_status = validated_data.get('status_os', instance.status_os)
+
+        # Se o status está mudando para 'Concluida' ou 'Faturada' E a data de conclusão ainda não foi definida
+        if novo_status in ['Concluida', 'Faturada'] and not instance.data_conclusao:
+            instance.data_conclusao = timezone.now()
+
+        # Se o status estiver voltando de 'Concluida' ou 'Faturada' para um status anterior (ex: reabertura da OS)
+        elif instance.status_os in ['Concluida', 'Faturada'] and novo_status not in ['Concluida', 'Faturada']:
+            instance.data_conclusao = None  # Limpa a data se a OS for reaberta
+
+        # Chama o método de update original da classe pai para salvar todas as alterações no banco de dados
+        return super().update(instance, validated_data)
 
 
 # --- ADIÇÕES PARA GERENCIAMENTO DE USUÁRIOS ---
@@ -126,18 +150,14 @@ class AdminUserManagementSerializer(serializers.ModelSerializer):
             'first_name': {'required': False, 'allow_blank': True},
             'last_name': {'required': False, 'allow_blank': True},
             'email': {'required': False, 'allow_blank': True, 'allow_null': True},
-            'tipo_usuario': {'required': False}  # Permitir que admin defina, mas com default no create
+            'tipo_usuario': {'required': False}
         }
 
     def create(self, validated_data):
         validated_data.setdefault('tipo_usuario', 'mecanico')
-
         if 'password' not in validated_data or not validated_data.get('password'):
             raise serializers.ValidationError({'password': 'Este campo é obrigatório na criação.'})
-
         validated_data['password'] = make_password(validated_data.get('password'))
-        # Se o admin não especificar is_staff ou is_superuser, eles serão False por padrão no model do Django.
-        # No nosso caso, um mecânico não deve ser staff nem superuser por padrão.
         validated_data.setdefault('is_staff', False)
         validated_data.setdefault('is_superuser', False)
         user = Usuario.objects.create(**validated_data)
@@ -148,12 +168,6 @@ class AdminUserManagementSerializer(serializers.ModelSerializer):
             validated_data['password'] = make_password(validated_data.get('password'))
         else:
             validated_data.pop('password', None)
-
-        # Admin não deve poder alterar o próprio tipo de usuário ou de outros para admin facilmente aqui.
-        # Se 'tipo_usuario' não for enviado na requisição de update, mantém o existente.
-        # Se for enviado, atualiza. (Cuidado para admin não se rebaixar sem querer)
-        # instance.tipo_usuario = validated_data.get('tipo_usuario', instance.tipo_usuario)
-
         return super().update(instance, validated_data)
 
 
