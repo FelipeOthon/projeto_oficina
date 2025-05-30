@@ -9,8 +9,7 @@ import {
     abrirModalEditarVeiculo, handleDeletarVeiculo, handleVerDetalhesVeiculo
 } from './veiculoUI.js';
 import {
-    // renderAgendamentos, // Removida importação da função antiga
-    inicializarCalendarioAgendamentos, // Adicionada importação da nova função
+    inicializarCalendarioAgendamentos,
     abrirModalNovoAgendamento, handleSalvarAgendamento,
     abrirModalEditarAgendamento, handleDeletarAgendamento, handleVerDetalhesAgendamento,
     populateClientesParaAgendamentoDropdown,
@@ -65,24 +64,20 @@ const placeholdersBusca = {
 };
 
 async function verifyTokenAndGetUserData(token, usernameFromContext = null) {
-    if (!token) {
-        return null;
-    }
+    if (!token) { return null; }
     try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        const payloadBase64 = token.split('.')[1];
+        if (!payloadBase64) { return { tokenValid: false }; }
+        const payload = JSON.parse(atob(payloadBase64));
         const userIdFromPayload = payload.user_id;
-
-        if (userIdFromPayload === undefined) {
-            console.error("verifyTokenAndGetUserData: 'user_id' não encontrado no payload.");
-            return { tokenValid: false, username: undefined, userType: undefined };
-        }
+        if (userIdFromPayload === undefined) { return { tokenValid: false }; }
         const usernameForDisplay = payload.username || usernameFromContext || String(userIdFromPayload);
-        const userType = (String(userIdFromPayload) === '1' || usernameForDisplay.toLowerCase() === 'felipeothon') ? 'admin' : 'mecanico';
+        let userType = 'mecanico';
+        if (payload.user_type) userType = payload.user_type;
+        else if (payload.is_superuser === true) userType = 'admin';
+        else if (usernameForDisplay.toLowerCase() === 'felipeothon') userType = 'admin';
         return { username: usernameForDisplay, userType, tokenValid: true };
-    } catch (e) {
-        console.error("verifyTokenAndGetUserData: Erro ao decodificar token:", e);
-        return { tokenValid: false, username: undefined, userType: undefined };
-    }
+    } catch (e) { return { tokenValid: false }; }
 }
 
 async function handleLogin(event) {
@@ -91,9 +86,7 @@ async function handleLogin(event) {
     const passwordInput = document.getElementById('loginPassword');
     const usernameVal = usernameInput.value;
     const password = passwordInput.value;
-
     if (loginErrorDiv) loginErrorDiv.style.display = 'none';
-
     try {
         const response = await fetch(`${apiUrlBase}/token/`, {
             method: 'POST',
@@ -101,12 +94,10 @@ async function handleLogin(event) {
             body: JSON.stringify({ username: usernameVal, password }),
         });
         const data = await response.json();
-
         if (response.ok && data.access) {
             localStorage.setItem('access_token', data.access);
             localStorage.setItem('refresh_token', data.refresh);
             const userData = await verifyTokenAndGetUserData(data.access, usernameVal);
-
             if (userData && userData.tokenValid && userData.username) {
                 localStorage.setItem('username', userData.username);
                 localStorage.setItem('user_type', userData.userType);
@@ -115,24 +106,14 @@ async function handleLogin(event) {
                 await setupApplicationAfterLogin();
             } else {
                 handleLogout();
-                if (loginErrorDiv) {
-                    loginErrorDiv.textContent = "Erro ao processar informações do usuário.";
-                    loginErrorDiv.style.display = 'block';
-                }
+                if (loginErrorDiv) { loginErrorDiv.textContent = "Erro ao processar informações do usuário."; loginErrorDiv.style.display = 'block';}
             }
         } else {
             const errorMessage = data.detail || `Usuário ou senha inválidos.`;
-            if (loginErrorDiv) {
-                loginErrorDiv.textContent = errorMessage;
-                loginErrorDiv.style.display = 'block';
-            } else { alert(errorMessage); }
+            if (loginErrorDiv) { loginErrorDiv.textContent = errorMessage; loginErrorDiv.style.display = 'block';} else { alert(errorMessage); }
         }
     } catch (error) {
-        console.error('Erro na requisição de login:', error);
-        if (loginErrorDiv) {
-            loginErrorDiv.textContent = 'Erro de conexão ao tentar fazer login.';
-            loginErrorDiv.style.display = 'block';
-        } else { alert('Erro de conexão.'); }
+        if (loginErrorDiv) { loginErrorDiv.textContent = 'Erro de conexão ao tentar fazer login.'; loginErrorDiv.style.display = 'block'; } else { alert('Erro de conexão.'); }
     }
 }
 
@@ -158,18 +139,13 @@ function showMainScreen() {
 function showLoginScreen() {
     if (loginContainer) loginContainer.style.display = 'block';
     if (mainContentWrapper) mainContentWrapper.style.display = 'none';
-    if(inputBuscaGlobal) {
-        inputBuscaGlobal.value = '';
-        inputBuscaGlobal.disabled = false;
-    }
+    if(inputBuscaGlobal) { inputBuscaGlobal.value = ''; inputBuscaGlobal.disabled = false; }
     const adminPanelSection = document.getElementById('admin-panel-section');
     if(adminPanelSection) adminPanelSection.style.display = 'none';
     const adminUsuariosOption = document.querySelector("#selectTipoBusca option[value='admin_usuarios']");
     if (adminUsuariosOption) adminUsuariosOption.remove();
     if(selectTipoBusca && selectTipoBusca.options.length > 0) {
-        if (selectTipoBusca.value === 'admin_usuarios') {
-             selectTipoBusca.value = 'clientes';
-        }
+        if (selectTipoBusca.value === 'admin_usuarios') selectTipoBusca.value = 'clientes';
     }
     atualizarPlaceholderBuscaGlobal();
 }
@@ -180,52 +156,33 @@ async function loadInitialData(tipo = 'clientes', searchTerm = '') {
     const token = localStorage.getItem('access_token');
     const currentUsername = localStorage.getItem('username');
     const currentUserType = localStorage.getItem('user_type');
-
-    if (!token || !currentUsername || !currentUserType) {
-        handleLogout();
-        return;
-    }
+    if (!token || !currentUsername || !currentUserType) { handleLogout(); return; }
     try {
         if (tipo === 'agendamentos') {
-            if (calendarioAgendamentosPronto && window.fullCalendarInstance) {
-                 window.fullCalendarInstance.refetchEvents();
-            } else if (typeof inicializarCalendarioAgendamentos === "function" && !calendarioAgendamentosPronto) {
-                // Só inicializa se não estiver pronto. A chamada principal é em setupApplicationAfterLogin
-                // console.log("loadInitialData chamando inicializarCalendarioAgendamentos pois não estava pronto.");
-                // window.fullCalendarInstance = inicializarCalendarioAgendamentos();
-                // calendarioAgendamentosPronto = true;
+            if (calendarioAgendamentosPronto && window.fullCalendarInstance) window.fullCalendarInstance.refetchEvents();
+            else if (typeof inicializarCalendarioAgendamentos === "function" && !calendarioAgendamentosPronto) {
+                window.fullCalendarInstance = inicializarCalendarioAgendamentos();
+                calendarioAgendamentosPronto = true;
             }
         } else {
             switch (tipo) {
                 case 'clientes': await renderClientes(searchTerm); break;
                 case 'veiculos': await renderVeiculos(searchTerm); break;
                 case 'os': await renderOrdensDeServico(searchTerm); break;
-                case 'admin_usuarios':
-                     if (currentUserType === 'admin') await renderAdminUsuarios(searchTerm);
-                     break;
-                default:
-                     console.warn(`loadInitialData: Tipo de busca desconhecido '${tipo}'. Carregando clientes.`);
-                     await renderClientes(searchTerm);
+                case 'admin_usuarios': if (currentUserType === 'admin') await renderAdminUsuarios(searchTerm); break;
+                default: await renderClientes(searchTerm);
             }
         }
-    } catch (error) {
-        console.error(`Erro ao carregar dados para tipo '${tipo}' com termo '${searchTerm}':`, error);
-    }
+    } catch (error) { console.error(`Erro ao carregar dados para tipo '${tipo}' com termo '${searchTerm}':`, error); }
 }
 
 function atualizarPlaceholderBuscaGlobal() {
     if (selectTipoBusca && inputBuscaGlobal) {
         const tipoSelecionado = selectTipoBusca.value;
-        if (tipoSelecionado === 'admin_usuarios') {
-            inputBuscaGlobal.placeholder = "Buscar usuário por username, nome ou email...";
-            inputBuscaGlobal.disabled = false;
-        } else if (tipoSelecionado === 'agendamentos'){
-            inputBuscaGlobal.placeholder = "Filtros e navegação direto no calendário.";
-            inputBuscaGlobal.disabled = true;
-        } else {
-            inputBuscaGlobal.disabled = false;
-            inputBuscaGlobal.placeholder = placeholdersBusca[tipoSelecionado] || "Digite para buscar...";
-        }
+        inputBuscaGlobal.disabled = (tipoSelecionado === 'agendamentos');
+        if (tipoSelecionado === 'admin_usuarios') inputBuscaGlobal.placeholder = "Buscar usuário por username, nome ou email...";
+        else if (tipoSelecionado === 'agendamentos') inputBuscaGlobal.placeholder = "Filtros e navegação direto no calendário.";
+        else inputBuscaGlobal.placeholder = placeholdersBusca[tipoSelecionado] || "Digite para buscar...";
     }
 }
 
@@ -233,16 +190,10 @@ async function executarBuscaGlobal() {
     if (!selectTipoBusca || !inputBuscaGlobal) return;
     const tipo = selectTipoBusca.value;
     const termo = inputBuscaGlobal.value.trim();
-
-    if (tipo === 'agendamentos') {
-        console.log("Busca global para agendamentos: Ações são feitas no calendário.");
-        return;
-    }
-    const listaId = (tipo === 'admin_usuarios') ? 'lista-admin-usuarios' : `lista-${tipo.replace('os', 'ordens-servico')}`;
+    if (tipo === 'agendamentos') return;
+    const listaId = (tipo === 'admin_usuarios') ? 'lista-usuarios-admin' : `lista-${tipo.replace('os', 'ordens-servico')}`;
     const listaUI = document.getElementById(listaId);
-    if (listaUI) {
-        listaUI.innerHTML = `<li class="list-group-item">Buscando ${tipo.replace('_', ' ')}...</li>`;
-    }
+    if (listaUI) listaUI.innerHTML = `<li class="list-group-item">Buscando ${tipo.replace('_', ' ')}...</li>`;
     await loadInitialData(tipo, termo);
 }
 
@@ -250,49 +201,31 @@ function limparBuscaGlobalEAtualizar() {
     if (!selectTipoBusca || !inputBuscaGlobal) return;
     inputBuscaGlobal.value = '';
     const tipo = selectTipoBusca.value;
-    if (tipo === 'agendamentos') {
-        // Nenhuma ação específica de recarga para o calendário ao limpar a busca global (que está desabilitada)
-    } else {
-        loadInitialData(tipo);
-    }
-    if (inputBuscaGlobal && !inputBuscaGlobal.disabled) {
-        inputBuscaGlobal.focus();
-    }
+    if (tipo !== 'agendamentos') loadInitialData(tipo);
+    if (inputBuscaGlobal && !inputBuscaGlobal.disabled) inputBuscaGlobal.focus();
 }
 
 function setupBuscaGlobalListeners() {
     if (selectTipoBusca) {
         selectTipoBusca.addEventListener('change', () => {
             atualizarPlaceholderBuscaGlobal();
-            const tipoSelecionado = selectTipoBusca.value;
             if(inputBuscaGlobal) inputBuscaGlobal.value = '';
-
-            if(tipoSelecionado !== 'agendamentos') {
-                executarBuscaGlobal();
-            } else {
-                 // Se mudou para agendamentos, o calendário já deve ter sido inicializado
-                 // por setupApplicationAfterLogin. Apenas garante que esteja visível.
-                 // Se quiser recarregar os eventos sempre que mudar para a aba agendamentos:
-                 if (calendarioAgendamentosPronto && window.fullCalendarInstance) {
-                    //  window.fullCalendarInstance.refetchEvents();
-                 }
-            }
+            if(selectTipoBusca.value !== 'agendamentos') executarBuscaGlobal();
             if(inputBuscaGlobal && !inputBuscaGlobal.disabled) inputBuscaGlobal.focus();
         });
     }
     if (inputBuscaGlobal) {
         inputBuscaGlobal.addEventListener('keyup', () => {
-            if(selectTipoBusca.value === 'agendamentos' || inputBuscaGlobal.disabled) return;
+            if(inputBuscaGlobal.disabled) return;
             clearTimeout(debounceTimerGlobal);
             debounceTimerGlobal = setTimeout(executarBuscaGlobal, 500);
         });
     }
-    if (btnLimparBuscaGlobal) {
-        btnLimparBuscaGlobal.addEventListener('click', limparBuscaGlobalEAtualizar);
-    }
+    if (btnLimparBuscaGlobal) btnLimparBuscaGlobal.addEventListener('click', limparBuscaGlobalEAtualizar);
 }
 
 function setupCommonEventListeners() {
+    // ... (outros listeners de botões principais como btnNovoCliente, etc. permanecem iguais) ...
     const btnNovoCliente = document.getElementById('btnNovoCliente');
     if (btnNovoCliente) btnNovoCliente.addEventListener('click', abrirModalNovoCliente);
     const btnSalvarCliente = document.getElementById('btnSalvarCliente');
@@ -338,47 +271,69 @@ function setupCommonEventListeners() {
     const btnSalvarNovaSenhaMecanico = document.getElementById('btnSalvarNovaSenhaMecanico');
     if(btnSalvarNovaSenhaMecanico) btnSalvarNovaSenhaMecanico.addEventListener('click', handleMecanicoMudarSenha);
 
+
     const mainContainer = document.getElementById('main-content-wrapper');
     if (mainContainer) {
         mainContainer.addEventListener('click', function(event) {
             const targetButton = event.target.closest('button');
             if (!targetButton) return;
-            const id = targetButton.dataset.id;
 
-            if (id && targetButton.classList.contains('btn-editar')) abrirModalEditarCliente(id);
-            else if (id && targetButton.classList.contains('btn-deletar')) handleDeletarCliente(id);
-            else if (id && targetButton.classList.contains('btn-detalhes')) handleVerDetalhesCliente(id);
-            else if (id && targetButton.classList.contains('btn-editar-veiculo')) abrirModalEditarVeiculo(id);
-            else if (id && targetButton.classList.contains('btn-deletar-veiculo')) handleDeletarVeiculo(id);
-            else if (id && targetButton.classList.contains('btn-detalhes-veiculo')) handleVerDetalhesVeiculo(id);
-            else if (id && targetButton.classList.contains('btn-editar-agendamento')) abrirModalEditarAgendamento(id);
-            else if (id && targetButton.classList.contains('btn-deletar-agendamento')) handleDeletarAgendamento(id);
-            else if (id && targetButton.classList.contains('btn-detalhes-agendamento')) handleVerDetalhesAgendamento(id);
-            else if (id && targetButton.classList.contains('btn-editar-os')) abrirModalEditarOS(id);
-            else if (id && targetButton.classList.contains('btn-deletar-os')) handleDeletarOS(id);
-            else if (id && targetButton.classList.contains('btn-detalhes-os')) {
-                const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
-                if(osDetalhesModalElement) osDetalhesModalElement.dataset.currentOsId = id;
-                handleVerDetalhesOS(id);
-            }
-            else if (id && targetButton.classList.contains('btn-editar-admin-usuario')) abrirModalEditarAdminUsuario(id);
-            else if (id && targetButton.classList.contains('btn-toggle-status-admin-usuario')) {
-                const currentStatus = targetButton.dataset.currentIsActive;
-                handleToggleUserActiveStateAdmin(id, currentStatus);
-            }
-
+            const id = targetButton.dataset.id; // ID da entidade principal (cliente, OS, etc.)
+            const itemId = targetButton.dataset.itemId; // ID do item específico (peça, serviço)
             const osDetalhesModalElement = document.getElementById('osDetalhesItensModal');
-            if (osDetalhesModalElement && osDetalhesModalElement.contains(targetButton)) {
-                const osIdContext = osDetalhesModalElement.dataset.currentOsId;
-                const itemId = targetButton.dataset.itemId;
-                if (targetButton.id === 'btnAbrirModalAdicionarPecaOS' && osIdContext) abrirModalAdicionarPeca(osIdContext);
-                else if (targetButton.id === 'btnAbrirModalAdicionarServicoOS' && osIdContext) abrirModalAdicionarServico(osIdContext);
-                else if (itemId && osIdContext) {
-                    if (targetButton.classList.contains('btn-editar-item-peca')) abrirModalEditarItemPeca(osIdContext, itemId);
-                    else if (targetButton.classList.contains('btn-editar-item-servico')) abrirModalEditarItemServico(osIdContext, itemId);
-                    else if (targetButton.classList.contains('btn-deletar-item-peca')) handleDeletarItemPeca(osIdContext, itemId);
-                    else if (targetButton.classList.contains('btn-deletar-item-servico')) handleDeletarItemServico(osIdContext, itemId);
+            let osIdContext = null;
+
+            // Prioridade 1: Botões de adicionar Peça/Serviço (já corrigidos)
+            if (targetButton.id === 'btnAbrirModalAdicionarPecaOS' || targetButton.id === 'btnAbrirModalAdicionarServicoOS') {
+                const modalPai = targetButton.closest('#osDetalhesItensModal');
+                if (modalPai) {
+                    osIdContext = modalPai.dataset.currentOsId;
+                    if (osIdContext) {
+                        if (targetButton.id === 'btnAbrirModalAdicionarPecaOS') abrirModalAdicionarPeca(osIdContext);
+                        else if (targetButton.id === 'btnAbrirModalAdicionarServicoOS') abrirModalAdicionarServico(osIdContext);
+                        return;
+                    }
                 }
+                console.warn(`Não foi possível obter o ID da OS para ${targetButton.id}`);
+                return;
+            }
+
+            // Prioridade 2: Botões de Editar/Deletar item de Peça/Serviço DENTRO do modal de detalhes da OS
+            if (itemId && osDetalhesModalElement && osDetalhesModalElement.contains(targetButton)) {
+                osIdContext = osDetalhesModalElement.dataset.currentOsId;
+                if (osIdContext) {
+                    console.log(`[main.js ITEM ACTION] Botão: ${targetButton.className}, OS ID: ${osIdContext}, Item ID: ${itemId}`);
+                    if (targetButton.classList.contains('btn-editar-item-peca')) abrirModalEditarItemPeca(osIdContext, itemId);
+                    else if (targetButton.classList.contains('btn-deletar-item-peca')) handleDeletarItemPeca(osIdContext, itemId);
+                    else if (targetButton.classList.contains('btn-editar-item-servico')) abrirModalEditarItemServico(osIdContext, itemId);
+                    else if (targetButton.classList.contains('btn-deletar-item-servico')) handleDeletarItemServico(osIdContext, itemId);
+                    return;
+                } else {
+                    console.warn(`Não foi possível obter o ID da OS para ação no item ${itemId}`);
+                    return;
+                }
+            }
+
+            // Lógica geral para outros botões (identificados por data-id e classes)
+            if (id) {
+                if (targetButton.classList.contains('btn-editar')) abrirModalEditarCliente(id);
+                else if (targetButton.classList.contains('btn-deletar')) handleDeletarCliente(id);
+                else if (targetButton.classList.contains('btn-detalhes')) handleVerDetalhesCliente(id);
+                else if (targetButton.classList.contains('btn-editar-veiculo')) abrirModalEditarVeiculo(id);
+                else if (targetButton.classList.contains('btn-deletar-veiculo')) handleDeletarVeiculo(id);
+                else if (targetButton.classList.contains('btn-detalhes-veiculo')) handleVerDetalhesVeiculo(id);
+                else if (targetButton.classList.contains('btn-editar-agendamento')) abrirModalEditarAgendamento(id);
+                else if (targetButton.classList.contains('btn-deletar-agendamento')) handleDeletarAgendamento(id);
+                else if (targetButton.classList.contains('btn-detalhes-agendamento')) handleVerDetalhesAgendamento(id);
+                else if (targetButton.classList.contains('btn-editar-os')) abrirModalEditarOS(id);
+                else if (targetButton.classList.contains('btn-deletar-os')) handleDeletarOS(id);
+                else if (targetButton.classList.contains('btn-detalhes-os')) handleVerDetalhesOS(id);
+                else if (targetButton.classList.contains('btn-editar-admin-usuario')) abrirModalEditarAdminUsuario(id);
+                else if (targetButton.classList.contains('btn-toggle-status-admin-usuario')) {
+                    const currentStatus = targetButton.dataset.currentIsActive;
+                    handleToggleUserActiveStateAdmin(id, currentStatus);
+                }
+                return;
             }
         });
     }
@@ -397,18 +352,11 @@ function setupCommonEventListeners() {
     });
 }
 
-// FUNÇÃO ATUALIZADA
 async function setupApplicationAfterLogin() {
     showMainScreen();
-
     const username = localStorage.getItem('username');
     const userType = localStorage.getItem('user_type');
-
-    if (!username || !userType) {
-        console.error("setupApplicationAfterLogin: Dados de sessão ausentes. Deslogando.");
-        handleLogout();
-        return;
-    }
+    if (!username || !userType) { handleLogout(); return; }
 
     if (userInfoSpan) {
         userInfoSpan.innerHTML = `Usuário: <strong>${username}</strong> (${userType}) `;
@@ -425,7 +373,6 @@ async function setupApplicationAfterLogin() {
 
     const adminPanelSection = document.getElementById('admin-panel-section');
     let adminUsuariosOption = document.querySelector("#selectTipoBusca option[value='admin_usuarios']");
-
     if (userType === 'admin') {
         if (adminPanelSection) adminPanelSection.style.display = 'block';
         if (selectTipoBusca && !adminUsuariosOption) {
@@ -440,76 +387,47 @@ async function setupApplicationAfterLogin() {
     }
 
     atualizarPlaceholderBuscaGlobal();
-
     if (userType !== 'admin' && selectTipoBusca && selectTipoBusca.value === 'admin_usuarios') {
         selectTipoBusca.value = 'clientes';
+        atualizarPlaceholderBuscaGlobal();
     }
+
     const tipoBuscaInicial = selectTipoBusca ? selectTipoBusca.value : 'clientes';
-    // console.log("Aba inicial selecionada para carregamento:", tipoBuscaInicial);
-
-    // 1. Carrega os dados da aba inicial (se não for 'agendamentos')
-    if (tipoBuscaInicial !== 'agendamentos') {
-        await loadInitialData(tipoBuscaInicial);
-    }
-
-    // 2. Inicializa o calendário (será feito apenas uma vez aqui)
+    if (tipoBuscaInicial !== 'agendamentos') await loadInitialData(tipoBuscaInicial);
     if (!calendarioAgendamentosPronto && typeof inicializarCalendarioAgendamentos === "function") {
-        // console.log("Inicializando o calendário de agendamentos em setupApplicationAfterLogin...");
         window.fullCalendarInstance = inicializarCalendarioAgendamentos();
         calendarioAgendamentosPronto = true;
     }
-    // Se a aba inicial for 'agendamentos', o calendário já está pronto.
-    // Se loadInitialData foi chamado para 'agendamentos', ele pode ter tentado refetch, o que é ok.
 
-    // 3. Carrega as outras seções principais em paralelo
-    // console.log("Iniciando carregamento paralelo de outras seções...");
     const promisesToLoadInParallel = [];
     const todasAsSecoes = {
-        'clientes': renderClientes,
-        'veiculos': renderVeiculos,
-        'os': renderOrdensDeServico,
+        'clientes': renderClientes, 'veiculos': renderVeiculos, 'os': renderOrdensDeServico,
         'admin_usuarios': userType === 'admin' ? renderAdminUsuarios : null
     };
-
     for (const secao in todasAsSecoes) {
-        if (secao !== tipoBuscaInicial && secao !== 'agendamentos' && todasAsSecoes[secao]) {
-            // console.log(`Adicionando ${secao} ao carregamento paralelo.`);
-            promisesToLoadInParallel.push(todasAsSecoes[secao]().catch(e => console.error(`Erro ao renderizar ${secao} em paralelo:`, e)));
+        if (todasAsSecoes[secao] && secao !== tipoBuscaInicial && secao !== 'agendamentos') {
+            promisesToLoadInParallel.push(todasAsSecoes[secao]().catch(e => console.error(`Erro renderizando ${secao}:`, e)));
         }
     }
-
-    if (promisesToLoadInParallel.length > 0) {
-        await Promise.all(promisesToLoadInParallel);
-        // console.log("Carregamento paralelo concluído.");
-    } else {
-        // console.log("Nenhuma seção adicional para carregamento paralelo ou aba de agendamentos é a inicial.");
-    }
+    if (promisesToLoadInParallel.length > 0) await Promise.all(promisesToLoadInParallel);
 }
 
-
 document.addEventListener('DOMContentLoaded', async () => {
-    // console.log("DOM completamente carregado e parseado.");
     if (formLogin) formLogin.addEventListener('submit', handleLogin);
     if (btnLogout) btnLogout.addEventListener('click', handleLogout);
-
     setupCommonEventListeners();
     setupBuscaGlobalListeners();
-
-    if (typeof setupRelatoriosListeners === "function") { // Configura listeners dos relatórios
-        setupRelatoriosListeners();
-    }
+    if (typeof setupRelatoriosListeners === "function") setupRelatoriosListeners();
 
     const token = localStorage.getItem('access_token');
     if (token) {
         const usernameFromStorage = localStorage.getItem('username');
         const userData = await verifyTokenAndGetUserData(token, usernameFromStorage);
-
         if (userData && userData.tokenValid && userData.username) {
             localStorage.setItem('username', userData.username);
             localStorage.setItem('user_type', userData.userType);
             await setupApplicationAfterLogin();
         } else {
-            console.warn("Token inválido ou dados do usuário não obtidos na carga. Deslogando.");
             handleLogout();
         }
     } else {

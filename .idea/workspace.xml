@@ -6,7 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="6ddb8d25-419f-4653-b538-52ae18089593" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/js/clienteUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/clienteUI.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/main.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/main.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,6 +43,7 @@
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
     &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;Django Server.projeto_oficina.executor&quot;: &quot;Debug&quot;,
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.OpenDjangoStructureViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
@@ -72,6 +74,7 @@
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="DJANGO_SETTINGS_MODULE" value="projeto_oficina.settings" />
       </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="" />
@@ -109,7 +112,9 @@
       <workItem from="1748003103102" duration="17812000" />
       <workItem from="1748256562594" duration="26110000" />
       <workItem from="1748347468374" duration="20382000" />
-      <workItem from="1748434013704" duration="12747000" />
+      <workItem from="1748434013704" duration="15791000" />
+      <workItem from="1748470735832" duration="3803000" />
+      <workItem from="1748520878731" duration="2374000" />
     </task>
     <servers />
   </component>
@@ -121,8 +126,8 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="javascript">
           <url>file://$PROJECT_DIR$/frontend/js/ordemDeServicoUI.js</url>
-          <line>540</line>
-          <option name="timeStamp" value="1" />
+          <line>574</line>
+          <option name="timeStamp" value="2" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
