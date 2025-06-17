@@ -17,10 +17,10 @@
         <div class="row justify-content-center">
             <div class="col-md-6 col-lg-5">
                 <div class="card shadow-sm">
-                    <div class="card-header text-center">
-                        <h3>OficinaPRO - Login</h3>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <img src="img/logo.png" alt="Logo" width="300">
                     </div>
-                    <div class="card-body">
                         <form id="formLogin">
                             <div class="form-group">
                                 <label for="loginUsername">Usuário</label>
@@ -39,23 +39,28 @@
         </div>
     </div>
 
-    <div id="main-content-wrapper" style="display:none;">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
-        <img src="img/logo.png" alt="OficinaPRO Logo" width="100" height="100">
+<div id="main-content-wrapper" style="display:none;">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-cinza mb-4">
+        <a class="navbar-brand d-flex align-items-center" href="index.html">
+            <img src="img/logo.png" alt="OficinaPRO Logo" width="48" height="48" class="d-inline-block align-middle mr-2">
+            <span class="font-weight-bold">Oficinas<span class="text-warning">Pro</span></span>
         </a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav mr-auto">
-                    </ul>
-                <span id="userInfo" class="navbar-text mr-3" style="color: white;">
-                    </span>
-                <button id="btnLogout" class="btn btn-outline-danger my-2 my-sm-0">Logout</button>
-            </div>
-        </nav>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="busca.html">Busca</a></li>
+                <li class="nav-item"><a class="nav-link" href="agendamentos.html">Agendamentos</a></li>
+                <li class="nav-item"><a class="nav-link" href="ordensDeServico.html">Ordens de Serviço</a></li>
+            </ul>
 
+            <div class="ml-auto d-flex align-items-center">
+                <span id="userInfo" class="navbar-text text-white mr-3">
+                    Usuário: <strong>admin</strong> (mecanico)
+                </span>
+                <button id="alterarSenha" class="btn btn-outline-info mr-2">Alterar Senha</button>
+                <button id="btnLogout" class="btn btn-outline-danger">Logout</button>
+            </div>
+        </div>
+    </nav>
         <div class="container mt-3">
 
 

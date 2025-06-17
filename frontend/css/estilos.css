@@ -21,10 +21,6 @@ h2 {
 h3{
     font-size: 1.25rem;
 }
-p{
-    font-size: 15px;
-}
-
 /* Navbar */
 .navbar {
     background-color: #cccccc;
@@ -165,39 +161,35 @@ input[type="date"] {
     border-radius: 12px;
 }
 
-ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    gap: 20px; /* espaço entre os itens */
-}
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      gap: 20px; /* espaço entre os itens */
+    }
 
-li a {
-    color: #d1521c;
-    text-decoration: none; /* remove o sublinhado */
-    font-weight: bold;
-}
-
-li a:hover {
-    text-decoration: underline;
-}
-
-.slogan {
-      font-size: 2rem;
+    li a {
+      color: #d1521c;
+      text-decoration: none; /* remove o sublinhado */
       font-weight: bold;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-      margin-bottom: 1.5rem;
-      animation: slideUp 1s ease-out;
     }
 
-    @media (min-width: 768px) {
-      .slogan {
-        font-size: 3rem;
-      }
+    li a:hover {
+      text-decoration: underline;
     }
 
-    .slogan span {
-      color: #f26522;
-    }
-    
+    /* destaque laranja dos links, mesmo tom do print */
+.navbar-nav .nav-link {
+  color: #ff6b00 !important;        /* cor padrão */
+  font-weight: 600;
+}
+.navbar-nav .nav-link:hover {
+  color: #ff8133 !important;        /* leve variação no hover */
+}
+.text-warning {
+    color: #ff6b00 !important; /* Laranja vibrante, por exemplo */
+  }
+.btnSalvarAgendamento{
+    color: #ff6b00 !important; /* Laranja vibrante, por exemplo */
+  }
