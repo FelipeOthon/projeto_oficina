@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oficina - Gestão Completa</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css' rel='stylesheet' />
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js'></script>
@@ -40,8 +41,17 @@
     </div>
 
     <div id="main-content-wrapper" style="display:none;">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-            <a class="navbar-brand" href="#">OficinaPRO</a>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+        <img src="img/logo.png" alt="OficinaPRO Logo" width="95" height="95">
+        <ul>
+          <li><a></a></li>
+          <li><a href="agendamentos.html">Agendamentos</a></li>
+          <li><a href="busca.html">Busca</a></li>
+          <li><a href="ordensDeServico.html">Ordens de Serviço</a></li>
+        </ul>
+
+        </a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -54,643 +64,81 @@
             </div>
         </nav>
 
-        <div class="container mt-3">
-            <div class="global-search-controls mb-4 p-3 border rounded bg-light shadow-sm">
-                <h4>Busca Rápida no Sistema</h4>
-                <div class="form-row align-items-end">
-                    <div class="col-md-4 mb-2 mb-md-0">
-                        <label for="selectTipoBusca">Buscar em:</label>
-                        <select id="selectTipoBusca" class="form-control">
-                            <option value="clientes" selected>Clientes</option>
-                            <option value="veiculos">Veículos</option>
-                            <option value="agendamentos">Agendamentos</option>
-                            <option value="os">Ordens de Serviço</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6 mb-2 mb-md-0">
-                        <label for="inputBuscaGlobal">Termo de Busca:</label>
-                        <input type="text" class="form-control" id="inputBuscaGlobal" placeholder="Buscar cliente por nome, email ou CPF/CNPJ...">
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-secondary btn-block" id="btnLimparBuscaGlobal">Limpar</button>
-                    </div>
-                </div>
-            </div>
-            <section id="relatorios-section" class="mb-5 card shadow-sm">
-                <div class="card-header">
-                    <h1 class="h4 mb-0">Relatórios da Oficina</h1>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="relatorioDataInicio">Data de Início:</label>
-                                <input type="date" class="form-control" id="relatorioDataInicio">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="relatorioDataFim">Data de Fim:</label>
-                                <input type="date" class="form-control" id="relatorioDataFim">
-                            </div>
-                        </div>
-                    </div>
-                    <div id="relatoriosError" class="text-danger mt-2 mb-3" style="display:none;"></div>
-                    <div class="row mt-2">
-                        <div class="col-md-6 mb-2">
-                            <button id="btnGerarRelatorioOSConcluidas" class="btn btn-primary btn-block">
-                                Gerar Relatório de OS Concluídas/Faturadas
-                            </button>
-                        </div>
-                        <div class="col-md-6 mb-2">
-                            <button id="btnGerarRelatorioFaturamento" class="btn btn-success btn-block">
-                                Gerar Relatório de Faturamento
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
+      <div style="
+        width: 100vw;
+        height: 100vh;
+        background-image: url('img/fundo.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;">
 
-            <section id="admin-panel-section" class="mb-5" style="display:none;">
-                <header class="d-flex justify-content-between align-items-center mb-4">
-                    <h1>Painel Administrativo</h1>
-                </header>
-                <main>
-                    <div id="admin-user-management" class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h2>Gerenciar Usuários</h2>
-                            <button id="btnNovoUsuarioAdmin" class="btn btn-success">Novo Usuário</button>
-                        </div>
-                        <ul id="lista-usuarios-admin" class="list-group">
-                            <li class="list-group-item">Carregando usuários...</li>
-                        </ul>
-                    </div>
-                </main>
-            </section>
+      <div style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        text-align: center;
+        font-size: 1.3rem;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 20px 40px;
+        border-radius: 10px;">
 
-            <div class="modal fade" id="adminUsuarioModal" tabindex="-1" role="dialog" aria-labelledby="adminUsuarioModalLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="adminUsuarioModalLabel">Gerenciar Usuário</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="formAdminUsuario">
-                                <input type="hidden" id="adminUsuarioId">
-                                <div class="form-group">
-                                    <label for="adminUsuarioUsername">Username*</label>
-                                    <input type="text" class="form-control" id="adminUsuarioUsername" required autocomplete="username">
-                                </div>
-                                <div class="form-group">
-                                    <label for="adminUsuarioPassword">Senha</label>
-                                    <input type="password" class="form-control" id="adminUsuarioPassword" autocomplete="new-password">
-                                    <small id="passwordHelp" class="form-text text-muted">Obrigatório ao criar. Deixe em branco ao editar para não alterar a senha.</small>
-                                </div>
-                                <div class="form-group">
-                                    <label for="adminUsuarioFirstName">Primeiro Nome</label>
-                                    <input type="text" class="form-control" id="adminUsuarioFirstName" autocomplete="given-name">
-                                </div>
-                                <div class="form-group">
-                                    <label for="adminUsuarioLastName">Sobrenome</label>
-                                    <input type="text" class="form-control" id="adminUsuarioLastName" autocomplete="family-name">
-                                </div>
-                                <div class="form-group">
-                                    <label for="adminUsuarioEmail">Email</label>
-                                    <input type="email" class="form-control" id="adminUsuarioEmail" autocomplete="email">
-                                </div>
-                                <div class="form-group">
-                                    <label for="adminUsuarioTipo">Tipo de Usuário*</label>
-                                    <select class="form-control" id="adminUsuarioTipo" required>
-                                        <option value="mecanico">Mecânico</option>
-                                        <option value="admin">Administrador</option>
-                                    </select>
-                                </div>
-                                 <div class="form-check mb-3">
-                                    <input type="checkbox" class="form-check-input" id="adminUsuarioIsActive">
-                                    <label class="form-check-label" for="adminUsuarioIsActive">Ativo</label>
-                                </div>
-                                </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" id="btnSalvarAdminUsuario">Salvar Usuário</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <strong>Bem-vindo a OficinaPRO</strong>
+      <h1 class="slogan"><span>Excelência em Cada Reparo</span></h1>
+        <p>Seu veículo merece o melhor tratamento. Na OficinaPro, combinamos tecnologia de ponta com experiência para trazer a melhor solução para seu carro.</p>
+      </div>
+</div>
 
-            <div class="modal fade" id="mecanicoChangePasswordModal" tabindex="-1" role="dialog" aria-labelledby="mecanicoChangePasswordModalLabel" aria-hidden="true">
-                <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="mecanicoChangePasswordModalLabel">Alterar Minha Senha</h5>
-                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="formMecanicoChangePassword">
-                                <div class="form-group">
-                                    <label for="mecanicoOldPassword">Senha Antiga*</label>
-                                    <input type="password" class="form-control" id="mecanicoOldPassword" required autocomplete="current-password">
-                                </div>
-                                <div class="form-group">
-                                    <label for="mecanicoNewPassword">Nova Senha*</label>
-                                    <input type="password" class="form-control" id="mecanicoNewPassword" required autocomplete="new-password">
-                                </div>
-                                <div class="form-group">
-                                    <label for="mecanicoNewPasswordConfirm">Confirmar Nova Senha*</label>
-                                    <input type="password" class="form-control" id="mecanicoNewPasswordConfirm" required autocomplete="new-password">
-                                </div>
-                                <div id="changePasswordError" class="text-danger mt-2" style="display:none;"></div>
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                            <button type="button" class="btn btn-primary" id="btnSalvarNovaSenhaMecanico">Salvar Nova Senha</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div class="container py-5">
+        <h1 class="text-center slogan mb-1">Selecione a Funcionalidade Desejada</h1>
 
-            <section id="clientes-section" class="mb-5">
-                <header class="d-flex justify-content-between align-items-center mb-4">
-                    <h1>Clientes da Oficina</h1>
-                    <button id="btnNovoCliente" class="btn btn-primary">Novo Cliente</button>
-                </header>
-                <main>
-                    <h2>Lista de Clientes</h2>
-                    <ul id="lista-clientes" class="list-group">
-                        <li class="list-group-item">Carregando clientes...</li>
-                    </ul>
-                </main>
-            </section>
+        <div class="row justify-content-center">
+          <div class="col-md-4 mb-4">
+            <a href="busca.html" class="text-decoration-none text-dark">
+              <div class="card card-option shadow-sm text-center p-4">
+                <img src="img/busca.png"  alt="Busca">
+                <h3 class="mt-3">Busca</h3>
+                <p>Pesquise rapidamente clientes, veículos ou serviços.</p>
+              </div>
+            </a>
+          </div>
+          
+          <div class="col-md-4 mb-4">
+            <a href="agendamentos.html" class="text-decoration-none text-dark">
+              <div class="card card-option shadow-sm text-center p-4">
+                <img src="img/Agendamentos.png" alt="Agendamentos">
+                <h3 class="mt-3">Agendamentos</h3>
+                <p>Gerencie os horários e compromissos da oficina.</p>
+              </div>
+            </a>
+          </div>
+          
+          <div class="col-md-4 mb-4">
+            <a href="ordensdeServico.html" class="text-decoration-none text-dark">
+              <div class="card card-option shadow-sm text-center p-4">
+                <img src="img/OrdensDeServico.png" alt="Ordens de Serviço">
+                <h3 class="mt-3">Ordens de Serviço</h3>
+                <p>Controle e acompanhe as OS da sua oficina.</p>
+              </div>
 
-            <hr class="my-5">
-
-            <section id="veiculos-section" class="mb-5">
-                <header class="d-flex justify-content-between align-items-center mb-4">
-                    <h1>Veículos da Oficina</h1>
-                    <button id="btnNovoVeiculo" class="btn btn-success">Novo Veículo</button>
-                </header>
-                <main>
-                    <h2>Lista de Veículos</h2>
-                    <div class="alert alert-info">A lista de veículos é geral. A seleção de cliente no formulário de veículo define a associação.</div>
-                    <ul id="lista-veiculos" class="list-group">
-                        <li class="list-group-item">Carregando veículos...</li>
-                    </ul>
-                </main>
-            </section>
-
-            <hr class="my-5">
-
-            <section id="agendamentos-section" class="mb-5">
-                <header class="d-flex justify-content-between align-items-center mb-4">
-                    <h1>Agendamentos</h1>
-                    <button id="btnNovoAgendamento" class="btn btn-info">Novo Agendamento</button>
-                </header>
-                <main>
-                    <h2>Calendário de Agendamentos</h2>
-                    {/* Container do Calendário (SUBSTITUÍDO A LISTA ANTERIOR) */}
-                    <div id="calendarioAgendamentos" class="bg-light p-3 border rounded shadow-sm" style="min-height: 500px;">
-                        {/* O calendário será renderizado aqui pelo JavaScript */}
-                    </div>
-                </main>
-            </section>
-
-            <hr class="my-5">
-
-            <section id="os-section" class="mb-5">
-                <header class="d-flex justify-content-between align-items-center mb-4">
-                    <h1>Ordens de Serviço</h1>
-                    <button id="btnNovaOS" class="btn btn-warning">Nova Ordem de Serviço</button>
-                </header>
-                <main>
-                    <h2>Lista de Ordens de Serviço</h2>
-                    <ul id="lista-ordens-servico" class="list-group">
-                        <li class="list-group-item">Carregando Ordens de Serviço...</li>
-                    </ul>
-                </main>
-            </section>
+          <div class="col-md-4 mb-4">
+            <a href="users.html" class="text-decoration-none text-dark">
+              <div class="card card-option shadow-sm text-center p-4">
+                <img src="img/administrativo.png" alt="Ordens de Serviço">
+                <h3 class="mt-3">Gerenciador de Usuários</h3>
+                <p>Gerencie os usuários da sua oficina.</p>
+              </div>
+            </a>
+          </div>
         </div>
-    </div>
-
-    <div class="modal fade" id="clienteModal" tabindex="-1" role="dialog" aria-labelledby="clienteModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="clienteModalLabel">Adicionar Novo Cliente</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="formCliente">
-                        <input type="hidden" id="clienteId">
-                        <div class="form-group">
-                            <label for="nomeCompleto">Nome Completo*</label>
-                            <input type="text" class="form-control" id="nomeCompleto" autocomplete="name" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="telefonePrincipal">Telefone Principal*</label>
-                            <input type="text" class="form-control" id="telefonePrincipal" autocomplete="tel-national" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="telefoneSecundario">Telefone Secundário</label>
-                            <input type="text" class="form-control" id="telefoneSecundario" autocomplete="tel-national">
-                        </div>
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" class="form-control" id="email" autocomplete="email">
-                        </div>
-                        <div class="form-group">
-                            <label for="cpfCnpj">CPF/CNPJ</label>
-                            <input type="text" class="form-control" id="cpfCnpj">
-                        </div>
-                        <div class="form-group">
-                            <label for="enderecoRua">Rua</label>
-                            <input type="text" class="form-control" id="enderecoRua" autocomplete="address-line1">
-                        </div>
-                        <div class="form-group">
-                            <label for="enderecoNumero">Número</label>
-                            <input type="text" class="form-control" id="enderecoNumero" autocomplete="address-line2">
-                        </div>
-                        <div class="form-group">
-                            <label for="enderecoComplemento">Complemento</label>
-                            <input type="text" class="form-control" id="enderecoComplemento" autocomplete="address-line3">
-                        </div>
-                        <div class="form-group">
-                            <label for="enderecoBairro">Bairro</label>
-                            <input type="text" class="form-control" id="enderecoBairro">
-                        </div>
-                        <div class="form-group">
-                            <label for="enderecoCidade">Cidade</label>
-                            <input type="text" class="form-control" id="enderecoCidade" autocomplete="address-level2">
-                        </div>
-                        <div class="form-group">
-                            <label for="enderecoEstado">Estado (UF)</label>
-                            <input type="text" class="form-control" id="enderecoEstado" autocomplete="address-level1" maxlength="2">
-                        </div>
-                        <div class="form-group">
-                            <label for="enderecoCep">CEP</label>
-                            <input type="text" class="form-control" id="enderecoCep" autocomplete="postal-code">
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btnSalvarCliente">Salvar Cliente</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="veiculoModal" tabindex="-1" role="dialog" aria-labelledby="veiculoModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="veiculoModalLabel">Adicionar Novo Veículo</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="formVeiculo">
-                        <input type="hidden" id="veiculoId">
-                        <div class="form-group">
-                            <label for="veiculoCliente">Cliente*</label>
-                            <select class="form-control" id="veiculoCliente" required>
-                                <option value="">Selecione um Cliente...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="veiculoPlaca">Placa*</label>
-                            <input type="text" class="form-control" id="veiculoPlaca" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="veiculoMarca">Marca*</label>
-                            <input type="text" class="form-control" id="veiculoMarca" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="veiculoModelo">Modelo*</label>
-                            <input type="text" class="form-control" id="veiculoModelo" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="veiculoAnoFabricacao">Ano Fabricação</label>
-                            <input type="number" class="form-control" id="veiculoAnoFabricacao">
-                        </div>
-                        <div class="form-group">
-                            <label for="veiculoAnoModelo">Ano Modelo</label>
-                            <input type="number" class="form-control" id="veiculoAnoModelo">
-                        </div>
-                        <div class="form-group">
-                            <label for="veiculoCor">Cor</label>
-                            <input type="text" class="form-control" id="veiculoCor">
-                        </div>
-                        <div class="form-group">
-                            <label for="veiculoChassi">Chassi</label>
-                            <input type="text" class="form-control" id="veiculoChassi">
-                        </div>
-                        <div class="form-group">
-                            <label for="veiculoObservacoes">Observações</label>
-                            <textarea class="form-control" id="veiculoObservacoes" rows="3"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-success" id="btnSalvarVeiculo">Salvar Veículo</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="agendamentoModal" tabindex="-1" role="dialog" aria-labelledby="agendamentoModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="agendamentoModalLabel">Adicionar Novo Agendamento</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="formAgendamento">
-                        <input type="hidden" id="agendamentoId">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="agendamentoCliente">Cliente*</label>
-                                    <select class="form-control" id="agendamentoCliente" required></select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="agendamentoVeiculo">Veículo*</label>
-                                    <select class="form-control" id="agendamentoVeiculo" required></select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="agendamentoData">Data do Agendamento*</label>
-                                    <input type="date" class="form-control" id="agendamentoData" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="agendamentoHora">Hora do Agendamento*</label>
-                                    <input type="time" class="form-control" id="agendamentoHora" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="agendamentoServicoSolicitado">Serviço Solicitado*</label>
-                            <textarea class="form-control" id="agendamentoServicoSolicitado" rows="3" required></textarea>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="agendamentoMecanico">Mecânico (Opcional)</label>
-                                    <select class="form-control" id="agendamentoMecanico"></select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="agendamentoStatus">Status*</label>
-                                    <select class="form-control" id="agendamentoStatus" required>
-                                        <option value="Agendado" selected>Agendado</option>
-                                        <option value="Confirmado">Confirmado</option>
-                                        <option value="Realizado">Realizado</option>
-                                        <option value="Cancelado">Cancelado</option>
-                                        <option value="Nao Compareceu">Não Compareceu</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="agendamentoObservacoes">Observações</label>
-                            <textarea class="form-control" id="agendamentoObservacoes" rows="2"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-info" id="btnSalvarAgendamento">Salvar Agendamento</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="osModal" tabindex="-1" role="dialog" aria-labelledby="osModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="osModalLabel">Adicionar Nova Ordem de Serviço</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="formOS">
-                        <input type="hidden" id="osId">
-                        <div class="form-group" id="osNumeroOsWrapper" style="display: none;">
-                            <label for="osNumeroOs">Número da OS</label>
-                            <input type="text" class="form-control" id="osNumeroOs" readonly>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="osCliente">Cliente*</label>
-                                    <select class="form-control" id="osCliente" required></select>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="osVeiculo">Veículo*</label>
-                                    <select class="form-control" id="osVeiculo" required></select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="osDescricaoProblemaCliente">Descrição do Problema (Cliente)*</label>
-                            <textarea class="form-control" id="osDescricaoProblemaCliente" rows="3" required></textarea>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="osDataSaidaPrevista">Data de Saída Prevista</label>
-                                    <input type="date" class="form-control" id="osDataSaidaPrevista">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label for="osStatus">Status*</label>
-                                    <select class="form-control" id="osStatus" required>
-                                        <option value="Aberta" selected>Aberta</option>
-                                        <option value="Em Andamento">Em Andamento</option>
-                                        <option value="Aguardando Pecas">Aguardando Peças</option>
-                                        <option value="Aguardando Aprovacao">Aguardando Aprovação</option>
-                                        <option value="Concluida">Concluída</option>
-                                        <option value="Cancelada">Cancelada</option>
-                                        <option value="Faturada">Faturada</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="osMecanicoResponsavel">Mecânico Responsável (Opcional)</label>
-                            <select class="form-control" id="osMecanicoResponsavel"></select>
-                        </div>
-                        <div class="form-group">
-                            <label for="osDiagnosticoMecanico">Diagnóstico do Mecânico</label>
-                            <textarea class="form-control" id="osDiagnosticoMecanico" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="osServicosExecutadosObs">Observações de Serviços Executados</label>
-                            <textarea class="form-control" id="osServicosExecutadosObs" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="osValorDesconto">Valor do Desconto (R$)</label>
-                            <input type="number" class="form-control" id="osValorDesconto" step="0.01" value="0.00">
-                        </div>
-                        <div class="form-group">
-                            <label for="osObservacoesInternas">Observações Internas</label>
-                            <textarea class="form-control" id="osObservacoesInternas" rows="2"></textarea>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-warning" id="btnSalvarOS">Salvar Ordem de Serviço</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="osDetalhesItensModal" tabindex="-1" role="dialog" aria-labelledby="osDetalhesItensModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="osDetalhesItensModalLabel">Detalhes da Ordem de Serviço</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <h4>Dados da OS</h4>
-                    <div id="osDetalhesConteudo" class="mb-3 p-3 border rounded bg-light">
-                        <p>Carregando detalhes da OS...</p>
-                    </div>
-
-                    <div class="mb-3 text-center">
-                        <button type="button" class="btn btn-primary" id="btnGerarOsPdf">Gerar PDF da OS</button>
-                    </div>
-                    <hr>
-
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5>Peças Utilizadas</h5>
-                            <button class="btn btn-sm btn-success" id="btnAbrirModalAdicionarPecaOS">Adicionar Peça</button>
-                        </div>
-                        <ul id="osDetalhesItensPecas" class="list-group">
-                            <li class="list-group-item">Carregando peças...</li>
-                        </ul>
-                    </div>
-
-                    <hr>
-
-                    <div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h5>Serviços Executados</h5>
-                            <button class="btn btn-sm btn-success" id="btnAbrirModalAdicionarServicoOS">Adicionar Serviço</button>
-                        </div>
-                        <ul id="osDetalhesItensServicos" class="list-group">
-                            <li class="list-group-item">Carregando serviços...</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
-                    </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="itemPecaModal" tabindex="-1" role="dialog" aria-labelledby="itemPecaModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="itemPecaModalLabel">Adicionar/Editar Peça</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="formItemPeca">
-                        <input type="hidden" id="itemPecaOsId">
-                        <input type="hidden" id="itemPecaId">
-                        <div class="form-group">
-                            <label for="itemPecaDescricao">Descrição da Peça*</label>
-                            <input type="text" class="form-control" id="itemPecaDescricao" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="itemPecaQuantidade">Quantidade*</label>
-                            <input type="number" class="form-control" id="itemPecaQuantidade" step="0.01" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="itemPecaValorUnitario">Valor Unitário (R$)*</label>
-                            <input type="number" class="form-control" id="itemPecaValorUnitario" step="0.01" required>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btnSalvarItemPeca">Salvar Peça</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="itemServicoModal" tabindex="-1" role="dialog" aria-labelledby="itemServicoModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="itemServicoModalLabel">Adicionar/Editar Serviço</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="formItemServico">
-                        <input type="hidden" id="itemServicoOsId">
-                        <input type="hidden" id="itemServicoId">
-                        <div class="form-group">
-                            <label for="itemServicoDescricao">Descrição do Serviço*</label>
-                            <input type="text" class="form-control" id="itemServicoDescricao" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="itemServicoValor">Valor do Serviço (R$)*</label>
-                            <input type="number" class="form-control" id="itemServicoValor" step="0.01" required>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btnSalvarItemServico">Salvar Serviço</button>
-                </div>
-            </div>
-        </div>
-    </div>
+      </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
     <script type="module" src="js/main.js"></script>
-</body>
+
+  </body>
 </html>

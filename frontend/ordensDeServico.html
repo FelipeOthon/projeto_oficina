@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oficina - Gestão Completa</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css' rel='stylesheet' />
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/locales/pt-br.js'></script>
+
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+    <div class="container mt-5" id="login-container" style="display:none;">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow-sm">
+                    <div class="card-header text-center">
+                        <h3>OficinaPRO - Login</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="formLogin">
+                            <div class="form-group">
+                                <label for="loginUsername">Usuário</label>
+                                <input type="text" class="form-control" id="loginUsername" required autocomplete="username">
+                            </div>
+                            <div class="form-group">
+                                <label for="loginPassword">Senha</label>
+                                <input type="password" class="form-control" id="loginPassword" required autocomplete="current-password">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+                            <div id="loginError" class="text-danger mt-2 text-center" style="display:none;"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content-wrapper" style="display:none;">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+        <img src="img/logo.png" alt="OficinaPRO Logo" width="100" height="100">
+        </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mr-auto">
+                    </ul>
+                <span id="userInfo" class="navbar-text mr-3" style="color: white;">
+                    </span>
+                <button id="btnLogout" class="btn btn-outline-danger my-2 my-sm-0">Logout</button>
+            </div>
+        </nav>
+
+        <div class="container mt-3">
+
+
+            <section id="os-section" class="mb-5">
+                <header class="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Ordens de Serviço</h1>
+                    <button id="btnNovaOS" class="btn btn-warning">Nova Ordem de Serviço</button>
+                </header>
+                <main>
+                    <h2>Lista de Ordens de Serviço</h2>
+                    <ul id="lista-ordens-servico" class="list-group">
+                        <li class="list-group-item">Carregando Ordens de Serviço...</li>
+                    </ul>
+                </main>
+            </section>
+        </div>
+    </div>
+
+    <div class="modal fade" id="clienteModal" tabindex="-1" role="dialog" aria-labelledby="clienteModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clienteModalLabel">Adicionar Novo Cliente</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCliente">
+                        <input type="hidden" id="clienteId">
+                        <div class="form-group">
+                            <label for="nomeCompleto">Nome Completo*</label>
+                            <input type="text" class="form-control" id="nomeCompleto" autocomplete="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="telefonePrincipal">Telefone Principal*</label>
+                            <input type="text" class="form-control" id="telefonePrincipal" autocomplete="tel-national" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="telefoneSecundario">Telefone Secundário</label>
+                            <input type="text" class="form-control" id="telefoneSecundario" autocomplete="tel-national">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" class="form-control" id="email" autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="cpfCnpj">CPF/CNPJ</label>
+                            <input type="text" class="form-control" id="cpfCnpj">
+                        </div>
+                        <div class="form-group">
+                            <label for="enderecoRua">Rua</label>
+                            <input type="text" class="form-control" id="enderecoRua" autocomplete="address-line1">
+                        </div>
+                        <div class="form-group">
+                            <label for="enderecoNumero">Número</label>
+                            <input type="text" class="form-control" id="enderecoNumero" autocomplete="address-line2">
+                        </div>
+                        <div class="form-group">
+                            <label for="enderecoComplemento">Complemento</label>
+                            <input type="text" class="form-control" id="enderecoComplemento" autocomplete="address-line3">
+                        </div>
+                        <div class="form-group">
+                            <label for="enderecoBairro">Bairro</label>
+                            <input type="text" class="form-control" id="enderecoBairro">
+                        </div>
+                        <div class="form-group">
+                            <label for="enderecoCidade">Cidade</label>
+                            <input type="text" class="form-control" id="enderecoCidade" autocomplete="address-level2">
+                        </div>
+                        <div class="form-group">
+                            <label for="enderecoEstado">Estado (UF)</label>
+                            <input type="text" class="form-control" id="enderecoEstado" autocomplete="address-level1" maxlength="2">
+                        </div>
+                        <div class="form-group">
+                            <label for="enderecoCep">CEP</label>
+                            <input type="text" class="form-control" id="enderecoCep" autocomplete="postal-code">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnSalvarCliente">Salvar Cliente</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="veiculoModal" tabindex="-1" role="dialog" aria-labelledby="veiculoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="veiculoModalLabel">Adicionar Novo Veículo</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formVeiculo">
+                        <input type="hidden" id="veiculoId">
+                        <div class="form-group">
+                            <label for="veiculoCliente">Cliente*</label>
+                            <select class="form-control" id="veiculoCliente" required>
+                                <option value="">Selecione um Cliente...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoPlaca">Placa*</label>
+                            <input type="text" class="form-control" id="veiculoPlaca" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoMarca">Marca*</label>
+                            <input type="text" class="form-control" id="veiculoMarca" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoModelo">Modelo*</label>
+                            <input type="text" class="form-control" id="veiculoModelo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoAnoFabricacao">Ano Fabricação</label>
+                            <input type="number" class="form-control" id="veiculoAnoFabricacao">
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoAnoModelo">Ano Modelo</label>
+                            <input type="number" class="form-control" id="veiculoAnoModelo">
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoCor">Cor</label>
+                            <input type="text" class="form-control" id="veiculoCor">
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoChassi">Chassi</label>
+                            <input type="text" class="form-control" id="veiculoChassi">
+                        </div>
+                        <div class="form-group">
+                            <label for="veiculoObservacoes">Observações</label>
+                            <textarea class="form-control" id="veiculoObservacoes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" id="btnSalvarVeiculo">Salvar Veículo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="agendamentoModal" tabindex="-1" role="dialog" aria-labelledby="agendamentoModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="agendamentoModalLabel">Adicionar Novo Agendamento</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formAgendamento">
+                        <input type="hidden" id="agendamentoId">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoCliente">Cliente*</label>
+                                    <select class="form-control" id="agendamentoCliente" required></select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoVeiculo">Veículo*</label>
+                                    <select class="form-control" id="agendamentoVeiculo" required></select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoData">Data do Agendamento*</label>
+                                    <input type="date" class="form-control" id="agendamentoData" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoHora">Hora do Agendamento*</label>
+                                    <input type="time" class="form-control" id="agendamentoHora" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="agendamentoServicoSolicitado">Serviço Solicitado*</label>
+                            <textarea class="form-control" id="agendamentoServicoSolicitado" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoMecanico">Mecânico (Opcional)</label>
+                                    <select class="form-control" id="agendamentoMecanico"></select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="agendamentoStatus">Status*</label>
+                                    <select class="form-control" id="agendamentoStatus" required>
+                                        <option value="Agendado" selected>Agendado</option>
+                                        <option value="Confirmado">Confirmado</option>
+                                        <option value="Realizado">Realizado</option>
+                                        <option value="Cancelado">Cancelado</option>
+                                        <option value="Nao Compareceu">Não Compareceu</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="agendamentoObservacoes">Observações</label>
+                            <textarea class="form-control" id="agendamentoObservacoes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-info" id="btnSalvarAgendamento">Salvar Agendamento</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="osModal" tabindex="-1" role="dialog" aria-labelledby="osModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="osModalLabel">Adicionar Nova Ordem de Serviço</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formOS">
+                        <input type="hidden" id="osId">
+                        <div class="form-group" id="osNumeroOsWrapper" style="display: none;">
+                            <label for="osNumeroOs">Número da OS</label>
+                            <input type="text" class="form-control" id="osNumeroOs" readonly>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="osCliente">Cliente*</label>
+                                    <select class="form-control" id="osCliente" required></select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="osVeiculo">Veículo*</label>
+                                    <select class="form-control" id="osVeiculo" required></select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="osDescricaoProblemaCliente">Descrição do Problema (Cliente)*</label>
+                            <textarea class="form-control" id="osDescricaoProblemaCliente" rows="3" required></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="osDataSaidaPrevista">Data de Saída Prevista</label>
+                                    <input type="date" class="form-control" id="osDataSaidaPrevista">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="osStatus">Status*</label>
+                                    <select class="form-control" id="osStatus" required>
+                                        <option value="Aberta" selected>Aberta</option>
+                                        <option value="Em Andamento">Em Andamento</option>
+                                        <option value="Aguardando Pecas">Aguardando Peças</option>
+                                        <option value="Aguardando Aprovacao">Aguardando Aprovação</option>
+                                        <option value="Concluida">Concluída</option>
+                                        <option value="Cancelada">Cancelada</option>
+                                        <option value="Faturada">Faturada</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="osMecanicoResponsavel">Mecânico Responsável (Opcional)</label>
+                            <select class="form-control" id="osMecanicoResponsavel"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="osDiagnosticoMecanico">Diagnóstico do Mecânico</label>
+                            <textarea class="form-control" id="osDiagnosticoMecanico" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="osServicosExecutadosObs">Observações de Serviços Executados</label>
+                            <textarea class="form-control" id="osServicosExecutadosObs" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="osValorDesconto">Valor do Desconto (R$)</label>
+                            <input type="number" class="form-control" id="osValorDesconto" step="0.01" value="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="osObservacoesInternas">Observações Internas</label>
+                            <textarea class="form-control" id="osObservacoesInternas" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning" id="btnSalvarOS">Salvar Ordem de Serviço</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="osDetalhesItensModal" tabindex="-1" role="dialog" aria-labelledby="osDetalhesItensModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="osDetalhesItensModalLabel">Detalhes da Ordem de Serviço</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <h4>Dados da OS</h4>
+                    <div id="osDetalhesConteudo" class="mb-3 p-3 border rounded bg-light">
+                        <p>Carregando detalhes da OS...</p>
+                    </div>
+
+                    <div class="mb-3 text-center">
+                        <button type="button" class="btn btn-primary" id="btnGerarOsPdf">Gerar PDF da OS</button>
+                    </div>
+                    <hr>
+
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5>Peças Utilizadas</h5>
+                            <button class="btn btn-sm btn-success" id="btnAbrirModalAdicionarPecaOS">Adicionar Peça</button>
+                        </div>
+                        <ul id="osDetalhesItensPecas" class="list-group">
+                            <li class="list-group-item">Carregando peças...</li>
+                        </ul>
+                    </div>
+
+                    <hr>
+
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5>Serviços Executados</h5>
+                            <button class="btn btn-sm btn-success" id="btnAbrirModalAdicionarServicoOS">Adicionar Serviço</button>
+                        </div>
+                        <ul id="osDetalhesItensServicos" class="list-group">
+                            <li class="list-group-item">Carregando serviços...</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                    </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="itemPecaModal" tabindex="-1" role="dialog" aria-labelledby="itemPecaModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemPecaModalLabel">Adicionar/Editar Peça</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formItemPeca">
+                        <input type="hidden" id="itemPecaOsId">
+                        <input type="hidden" id="itemPecaId">
+                        <div class="form-group">
+                            <label for="itemPecaDescricao">Descrição da Peça*</label>
+                            <input type="text" class="form-control" id="itemPecaDescricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemPecaQuantidade">Quantidade*</label>
+                            <input type="number" class="form-control" id="itemPecaQuantidade" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemPecaValorUnitario">Valor Unitário (R$)*</label>
+                            <input type="number" class="form-control" id="itemPecaValorUnitario" step="0.01" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnSalvarItemPeca">Salvar Peça</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="itemServicoModal" tabindex="-1" role="dialog" aria-labelledby="itemServicoModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="itemServicoModalLabel">Adicionar/Editar Serviço</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formItemServico">
+                        <input type="hidden" id="itemServicoOsId">
+                        <input type="hidden" id="itemServicoId">
+                        <div class="form-group">
+                            <label for="itemServicoDescricao">Descrição do Serviço*</label>
+                            <input type="text" class="form-control" id="itemServicoDescricao" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemServicoValor">Valor do Serviço (R$)*</label>
+                            <input type="number" class="form-control" id="itemServicoValor" step="0.01" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnSalvarItemServico">Salvar Serviço</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
