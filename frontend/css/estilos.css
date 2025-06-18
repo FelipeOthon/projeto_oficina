@@ -23,8 +23,9 @@ h3{
 }
 /* Navbar */
 .navbar {
-    background-color: #cccccc;
-    border-bottom: 1px solid #aaa;
+    background-color: #ffffff; /* Fundo branco, mais limpo */
+    border-bottom: 1px solid #e9ecef; /* Borda inferior mais sutil */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Sombra leve para profundidade */
 }
 
 .navbar-brand {
@@ -33,7 +34,7 @@ h3{
 }
 
 .navbar-text {
-    color: #2d2d2d;
+    color: #f26522 !important;
 }
 
 #btnLogout {
@@ -74,15 +75,6 @@ input:focus, select:focus {
     background-color: #d1521c;
 }
 
-.btn-success {
-    background-color: #f26522;
-    border: none;
-}
-
-.btn-success:hover {
-    background-color: #d1521c;
-}
-
 .btn-warning {
     background-color: #f26522;
     border: none;
@@ -100,6 +92,30 @@ input:focus, select:focus {
 
 .btn-secondary:hover {
     background-color: #888;
+}
+
+/* Botão de Sucesso (Verde) */
+.btn-success, .btn-success:hover {
+    background-color: #28a745; /* Verde sucesso */
+    border-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #218838; /* Tom mais escuro no hover */
+    border-color: #1e7e34;
+}
+
+/* Botão de Perigo (Vermelho) - NOVO */
+.btn-danger, .btn-danger:hover {
+    background-color: #dc3545; /* Vermelho perigo */
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333; /* Tom mais escuro no hover */
+    border-color: #bd2130;
 }
 
 /* Cartões */
@@ -161,25 +177,25 @@ input[type="date"] {
     border-radius: 12px;
 }
 
-    ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      gap: 20px; /* espaço entre os itens */
-    }
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 20px; /* espaço entre os itens */
+}
 
-    li a {
-      color: #d1521c;
-      text-decoration: none; /* remove o sublinhado */
-      font-weight: bold;
-    }
+li a {
+  color: #d1521c;
+  text-decoration: none; /* remove o sublinhado */
+  font-weight: bold;
+}
 
-    li a:hover {
-      text-decoration: underline;
-    }
+li a:hover {
+  text-decoration: underline;
+}
 
-    /* destaque laranja dos links, mesmo tom do print */
+/* destaque laranja dos links, mesmo tom do print */
 .navbar-nav .nav-link {
   color: #ff6b00 !important;        /* cor padrão */
   font-weight: 600;
@@ -187,9 +203,26 @@ input[type="date"] {
 .navbar-nav .nav-link:hover {
   color: #ff8133 !important;        /* leve variação no hover */
 }
+
+/* Estilo para o link de navegação que está ativo */
+.navbar-nav .nav-link.active {
+  background-color: rgba(242, 101, 34, 0.1); /* Um fundo laranja bem sutil */
+  border-radius: 6px; /* Bordas arredondadas para o destaque */
+  color: #c8531b !important; /* Cor do texto um pouco mais forte */
+}
+
 .text-warning {
     color: #ff6b00 !important; /* Laranja vibrante, por exemplo */
-  }
+}
+
 .btnSalvarAgendamento{
     color: #ff6b00 !important; /* Laranja vibrante, por exemplo */
-  }
+}
+
+/* --- MELHORIAS GLOBAIS DE TABELAS --- */
+
+/* Efeito de hover nas linhas do corpo da tabela */
+tbody tr:hover {
+    background-color: #f5f5f5; /* Um cinza bem claro para destaque */
+    cursor: pointer; /* Indica que a linha pode ser clicável */
+}

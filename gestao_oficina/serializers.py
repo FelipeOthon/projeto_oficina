@@ -1,6 +1,6 @@
 # gestao_oficina/serializers.py
 from rest_framework import serializers
-from django.utils import timezone  # <<< GARANTA QUE ESTE IMPORT ESTÁ AQUI
+from django.utils import timezone
 from .models import (
     Cliente,
     Veiculo,

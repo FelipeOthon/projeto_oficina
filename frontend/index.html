@@ -7,7 +7,7 @@
 
     <!-- Bootstrap 4 -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <!-- FullCalendar -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
@@ -108,7 +108,7 @@
               </div>
             </a>
           </div>
-          
+
           <div class="col-md-4 mb-4">
             <a href="agendamentos.html" class="text-decoration-none text-dark">
               <div class="card card-option shadow-sm text-center p-4">
@@ -118,7 +118,7 @@
               </div>
             </a>
           </div>
-          
+
           <div class="col-md-4 mb-4">
             <a href="ordensdeServico.html" class="text-decoration-none text-dark">
               <div class="card card-option shadow-sm text-center p-4">
@@ -136,6 +136,21 @@
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script type="module" src="js/main.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const paginaAtual = window.location.pathname.split('/').pop();
+        if (paginaAtual === '' || paginaAtual === 'index.html') {
+            // Se estiver na página inicial, nenhum link é ativado
+            return;
+        }
 
+        const linkSelector = `.navbar-nav .nav-link[href*='${paginaAtual}']`;
+        const linkAtivo = document.querySelector(linkSelector);
+
+        if (linkAtivo) {
+            linkAtivo.classList.add('active');
+        }
+    });
+</script>
 </body>
 </html>
